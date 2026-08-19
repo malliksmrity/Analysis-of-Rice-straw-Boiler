@@ -1,4 +1,4 @@
-# Rice Straw Boiler Combustion Optimization Tool — Physics-Informed ML
+# Rice Straw Boiler Combustion Optimization Tool 
 
 An ML-driven decision-support system for a rice-straw-fired boiler, predicting 
 and optimizing combustion efficiency. Built on design and simulation research 
