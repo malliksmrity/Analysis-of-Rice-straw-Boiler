@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 st.set_page_config(page_title="Rice Straw Boiler Analysis", layout="wide")
 
-st.title("🔥 Rice Straw Boiler Performance Dashboard")
+st.title("Rice Straw Boiler Combustion Optimization Tool")
 st.subheader("Combustion Efficiency Prediction & Analysis")
 st.markdown("Based on Design and Simulation research — Published at RDME-2025")
 
