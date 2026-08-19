@@ -29,7 +29,7 @@ Python · Pandas · Scikit-learn · Streamlit · Matplotlib · Jupyter
 - O₂ in flue gas is the primary driver of combustion efficiency in the model
 - Model performance validated against physics ground truth, not just fit to data
 
-## 🧪 Methodology & Validation
+## Methodology & Validation
 Rather than training on a handful of historical readings, this project generates 
 training data directly from the combustion physics formulas used in the underlying 
 simulation research. This produces a much larger, physically consistent dataset 
