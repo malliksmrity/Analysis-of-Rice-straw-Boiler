@@ -1,10 +1,10 @@
-﻿"""
+"""
 Generates a physics-grounded dataset for the Rice Straw Boiler project
 by sweeping Load (%) and Excess Air (%) through the same formulas used
 in your combustion simulation notebook.
 
 Run this first, before benchmark_models.py or the Streamlit app changes.
-Output: boiler_dataset.csv
+Output: data/boiler_dataset.csv
 """
 
 import numpy as np
@@ -16,6 +16,7 @@ NCV = 2609                   # kcal/kg
 kcal_to_watts = 4184 / 3600  # conversion factor
 
 # --- Sweep ranges ---
+np.random.seed(42)  # reproducible noise
 load_range = np.arange(60, 100.5, 1)        # 60% to 100%, step 1%
 excess_air_range = np.arange(30, 80.5, 1)   # 30% to 80%, step 1%
 
@@ -43,8 +44,8 @@ for load in load_range:
         })
 
 df = pd.DataFrame(rows)
-df.to_csv("boiler_dataset.csv", index=False)
+df.to_csv("data/boiler_dataset.csv", index=False)
 
 print(f"Generated {len(df)} rows.")
 print(df.describe())
-print("\nSaved to boiler_dataset.csv")
+print("\nSaved to data/boiler_dataset.csv")
