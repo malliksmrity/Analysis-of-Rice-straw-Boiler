@@ -1,0 +1,4 @@
+# Extra packages for the notebooks (plots).
+-r requirements.txt
+matplotlib==3.11.2
+seaborn==0.13.2
