@@ -1,0 +1,95 @@
+{
+  "rows": 2091,
+  "efficiency_min": 91.24,
+  "efficiency_max": 95.43,
+  "label_noise_sd": 0.148,
+  "random_split": [
+    {
+      "model": "Always the average",
+      "mae": 0.899,
+      "r2": -0.001,
+      "rmse": 1.049
+    },
+    {
+      "model": "Physics formula (made the labels)",
+      "mae": 0.125,
+      "r2": 0.977,
+      "rmse": 0.158
+    },
+    {
+      "model": "Linear regression (O2 only)",
+      "mae": 0.124,
+      "r2": 0.977,
+      "rmse": 0.158
+    },
+    {
+      "model": "Linear regression (all 4 inputs)",
+      "mae": 0.125,
+      "r2": 0.977,
+      "rmse": 0.158
+    },
+    {
+      "model": "Random forest",
+      "mae": 0.139,
+      "r2": 0.971,
+      "rmse": 0.178
+    },
+    {
+      "model": "XGBoost",
+      "mae": 0.138,
+      "r2": 0.972,
+      "rmse": 0.175
+    },
+    {
+      "model": "Gradient boosting",
+      "mae": 0.126,
+      "r2": 0.976,
+      "rmse": 0.161
+    }
+  ],
+  "extrapolation_excess_air_above_55": [
+    {
+      "model": "Linear regression (all 4 inputs)",
+      "mae": 0.12,
+      "r2": 0.889,
+      "rmse": 0.15
+    },
+    {
+      "model": "Random forest",
+      "mae": 0.84,
+      "r2": -3.438,
+      "rmse": 0.95
+    },
+    {
+      "model": "XGBoost",
+      "mae": 0.838,
+      "r2": -3.429,
+      "rmse": 0.949
+    },
+    {
+      "model": "Gradient boosting",
+      "mae": 0.833,
+      "r2": -3.354,
+      "rmse": 0.941
+    },
+    {
+      "model": "Physics formula (made the labels)",
+      "mae": 0.118,
+      "r2": 0.893,
+      "rmse": 0.148
+    }
+  ],
+  "optimum": {
+    "formula_best_excess_air": 30.0,
+    "random_forest_best_excess_air": 30.0,
+    "searched_range": [
+      30,
+      80
+    ]
+  },
+  "mean_efficiency_spread_across_loads": 0.097,
+  "rf_r2_over_5_splits": {
+    "mean": 0.975,
+    "std": 0.001
+  }
+}
