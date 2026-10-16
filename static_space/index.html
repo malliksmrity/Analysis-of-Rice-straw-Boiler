@@ -35,7 +35,9 @@
       <div><label for="ts">Stack temperature: <b id="tsv">200</b> &deg;C</label><br><input id="ts" type="range" min="140" max="300" value="200" style="width:100%"></div>
       <div><label for="un">Unburnt loss: <b id="unv">5.5</b> %</label><br><input id="un" type="range" min="2" max="9" step="0.5" value="5.5" style="width:100%"></div>
       <div><label for="wt">Extra fuel water: <b id="wtv">0</b> kg per tonne</label><br><input id="wt" type="range" min="0" max="120" value="0" style="width:100%"></div>
+      <div><label for="ld">Boiler load: <b id="ldv">100</b> % of the design fuel feed (2,957 kg/h)</label><br><input id="ld" type="range" min="40" max="110" value="100" style="width:100%"></div>
     </div>
+    <p style="margin:10px 0 0"><label><input id="pen" type="checkbox" checked> Include the assumed low-air penalty (not measured, see the note in section 2)</label></p>
     <p style="margin:10px 0 0"><button id="reset" class="btn">Back to the design point</button></p>
   </div>
 
@@ -117,7 +119,7 @@ function label(txt, x, y, z) {
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.scale.set(4, 1, 1); s.position.set(x, y, z); scene.add(s);
 }
 // furnace
-box(7, 4.5, 4, -8, 2.25, 0, steel(0x6b7a86, 0.22));
+const furnaceShell = box(7, 4.5, 4, -8, 2.25, 0, steel(0x6b7a86, 0.22));
 const flame = box(5.6, 3, 3.2, -8, 1.7, 0, new THREE.MeshStandardMaterial({ color: 0xff7a1a, emissive: 0xff5a00, emissiveIntensity: 1.2, transparent: true, opacity: 0.55 }));
 const flameLight = new THREE.PointLight(0xff7a2a, 40, 14); flameLight.position.set(-8, 2, 0); scene.add(flameLight);
 box(2.2, 0.25, 1.6, -13.2, 3.4, 0, steel(0x8b6b3a, 1)); // fuel feeder
@@ -132,7 +134,7 @@ box(4.2, 2.8, 3.4, 9.6, 1.4, 0, steel(0x6b7a86, 0.18));
 { const g = new THREE.CylinderGeometry(0.1, 0.1, 3.2, 8); g.rotateX(Math.PI / 2); const m = new THREE.MeshStandardMaterial({ color: 0x3b8fd6, metalness: 0.4, roughness: 0.4, emissive: 0x0a2a55 }), im = new THREE.InstancedMesh(g, m, 60), d = new THREE.Object3D(); let k = 0;
   for (let i = 0; i < 10; i++) for (let j = 0; j < 6; j++) { d.position.set(8 + i * 0.28 + (j % 2) * 0.14, 0.5 + j * 0.37, 0); d.updateMatrix(); im.setMatrixAt(k++, d.matrix); } scene.add(im); }
 // stack
-{ const s = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 10, 24, 1, true), steel(0x8a96a0, 0.5)); s.position.set(14, 5, 0); scene.add(s); }
+const stackMat = steel(0x8a96a0, 0.5); { const s = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 10, 24, 1, true), stackMat); s.position.set(14, 5, 0); scene.add(s); }
 // ducts
 for (const [x0, x1, y] of [[-4.5, -2.9, 1.7], [0.5, 0.9, 1.7], [6.3, 7.5, 1.4], [11.7, 14, 1.0]]) box(Math.max(0.2, x1 - x0), 0.5, 0.9, (x0 + x1) / 2, y, 0, steel(0x4a5560, 0.7));
 label('Furnace', -8, 5.4, 0); label('Settling chamber', -1.2, 4.5, 0); label('Convection bank', 3.6, 4.5, 0); label('Economizer', 9.6, 3.9, 0); label('Stack', 14, 10.8, 0);
@@ -151,15 +153,23 @@ for (let i = 0; i < N; i++) { S[i] = Math.random() * LEN; J[i * 2] = (Math.rando
 const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
 const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.3, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending })); scene.add(pts);
 
-const state = { ea: 0.7, ts: 200, un: 5.5, wt: 0, co: 0 };
+function cloud(n, color, size) { const p = new Float32Array(n * 3), sd = new Float32Array(n); for (let i = 0; i < n; i++) sd[i] = Math.random(); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); const pts = new THREE.Points(g, new THREE.PointsMaterial({ color, size, transparent: true, opacity: 0.55, depthWrite: false })); pts.frustumCulled = false; scene.add(pts); return { p, sd, g, pts, n }; }
+const smoke = cloud(260, 0x808890, 0.7), steam = cloud(220, 0xe8f2f8, 0.55), feed = cloud(80, 0x9a7a3c, 0.35);
+const state = { ea: 0.7, ts: 200, un: 5.5, wt: 0, co: 0, ld: 1 };
+let alert = '', smokeLevel = 0, steamLevel = 0;
 let flowFactor = 1, lastModel = null;
 function applyState() {
   tStack = state.ts; TEMP[8] = TEMP[9] = TEMP[10] = state.ts; TEMP[7] = (389 + state.ts) / 2; TEMP[11] = state.ts - 10;
   lastModel = model(state.ea, state.ts, state.wt, state.un, state.co);
-  flowFactor = lastModel.flueKg / BASE_MASS;
+  flowFactor = lastModel.flueKg / BASE_MASS * state.ld;
   flame.material.emissiveIntensity = 0.6 + 0.9 * (1 - (state.ea - 0.2) / 0.7 * 0.5); flame.material.color.setHSL(0.07 + 0.04 * (state.ea - 0.2) / 0.7, 1, 0.5); flameLight.intensity = 25 + 30 * (1 - (state.ea - 0.2) / 0.7 * 0.6);
-  const m = lastModel, bar = (v, c) => '<div class="bar" style="width:' + Math.max(1, v) + '%;background:' + c + '"></div>';
-  $('hud').innerHTML = '<div>Efficiency <b>' + m.eff.toFixed(1) + ' %</b></div>' + bar(m.eff, '#4cc2d3') + '<div>Flue gas loss ' + m.stack.toFixed(1) + ' %</div>' + bar(m.stack * 4, '#8a8a82') + '<div>Unburnt ' + (m.unburnt + m.co).toFixed(1) + ' %</div>' + bar((m.unburnt + m.co) * 4, '#b35c1e') + '<div>Radiation ' + m.radiation.toFixed(1) + ' %</div>' + bar(m.radiation * 4, '#6b4c9a') + '<div>Oxygen (dry) ' + m.o2dry.toFixed(1) + ' %, gas ' + m.flueKg.toFixed(2) + ' kg/kg fuel</div>';
+  const m0 = lastModel; flame.scale.set(0.55 + 0.55 * state.ld, 0.65 + 0.4 * state.ld, 0.65 + 0.4 * state.ld);
+  smokeLevel = Math.max(0, Math.min(1, (m0.unburnt + m0.co - 6) / 4 + (m0.o2dry < 3.5 ? 0.8 : 0) + ($('pen').checked && state.ea < eaMin(state.wt) - 0.001 ? 0.5 : 0))); steamLevel = Math.max(0, Math.min(1, (state.wt - 25) / 80));
+  const hotStack = state.ts > 260, lowEff = m0.eff < 76, starved = m0.o2dry < 3.5 || ($('pen').checked && state.ea < eaMin(state.wt) - 0.001);
+  stackMat.color.set(hotStack ? 0xd9402e : 0x8a96a0); stackMat.opacity = hotStack ? 0.8 : 0.5; furnaceShell.material.color.set(lowEff ? 0xb03a2e : 0x6b7a86); furnaceShell.material.opacity = lowEff ? 0.38 : 0.22;
+  alert = (hotStack ? 'ALARM: stack too hot. ' : '') + (lowEff ? 'ALARM: efficiency below 76 %. ' : '') + (starved ? 'ALARM: air-starved, smoky burn. ' : '') + (steamLevel > 0.5 ? 'Wet fuel: steam. ' : '');
+  const m = lastModel, heatMW = 2957 * state.ld * 2609 * 4.184 / 3600 * m0.eff / 100 / 1000, bar = (v, c) => '<div class="bar" style="width:' + Math.max(1, v) + '%;background:' + c + '"></div>';
+  $('hud').innerHTML = '<div>Efficiency <b>' + m.eff.toFixed(1) + ' %</b></div>' + bar(m.eff, '#4cc2d3') + '<div>Flue gas loss ' + m.stack.toFixed(1) + ' %</div>' + bar(m.stack * 4, '#8a8a82') + '<div>Unburnt ' + (m.unburnt + m.co).toFixed(1) + ' %</div>' + bar((m.unburnt + m.co) * 4, '#b35c1e') + '<div>Radiation ' + m.radiation.toFixed(1) + ' %</div>' + bar(m.radiation * 4, '#6b4c9a') + '<div>Oxygen (dry) ' + m.o2dry.toFixed(1) + ' %, gas ' + m.flueKg.toFixed(2) + ' kg/kg fuel</div><div>Fuel ' + Math.round(2957 * state.ld).toLocaleString() + ' kg/h, useful heat ' + heatMW.toFixed(2) + ' MW</div>' + (alert ? '<div style="color:#ff8a7a;font-weight:600">' + alert + '</div>' : '');
 }
 let moved = false; controls.addEventListener('start', () => { moved = true; });
 function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -176,15 +186,21 @@ function frame(now) {
     const on = i < visible ? 1 : 0; col[i * 3] = c.r * on; col[i * 3 + 1] = c.g * on; col[i * 3 + 2] = c.b * on;
   }
   geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
+  const tt = now / 1000;
+  for (let i = 0; i < smoke.n; i++) { const k = (tt / 2.2 + smoke.sd[i]) % 1, on = i < smoke.n * smokeLevel; smoke.p[i * 3] = on ? 14 + Math.sin(smoke.sd[i] * 40) * 0.3 * k + k * 2.2 : 0; smoke.p[i * 3 + 1] = on ? 10.3 + k * 5 : -50; smoke.p[i * 3 + 2] = on ? (smoke.sd[i] - 0.5) * 1.4 * k : 0; }
+  for (let i = 0; i < steam.n; i++) { const k = (tt / 2.6 + steam.sd[i]) % 1, on = i < steam.n * steamLevel; steam.p[i * 3] = on ? -8 + (steam.sd[i] - 0.5) * 6 + k * 1.2 : 0; steam.p[i * 3 + 1] = on ? 4.7 + k * 4.5 : -50; steam.p[i * 3 + 2] = on ? Math.sin(steam.sd[i] * 33) * 1.6 : 0; }
+  for (let i = 0; i < feed.n; i++) { const k = (tt * (0.4 + state.ld * 0.5) + feed.sd[i]) % 1, on = i < feed.n * Math.min(1, state.ld * 0.9); feed.p[i * 3] = on ? -14 + k * 3.3 : 0; feed.p[i * 3 + 1] = on ? 3.6 - k * 1.6 : -50; feed.p[i * 3 + 2] = on ? (feed.sd[i] - 0.5) * 0.9 : 0; }
+  smoke.g.attributes.position.needsUpdate = true; steam.g.attributes.position.needsUpdate = true; feed.g.attributes.position.needsUpdate = true;
   controls.update(); renderer.render(scene, camera); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
 // ---------------- manual controls ----------------
-function readManual() { state.ea = +$('ea').value / 100; state.ts = +$('ts').value; state.un = +$('un').value; state.wt = +$('wt').value; state.co = 0.25 * Math.max(0, (eaMin(state.wt) - state.ea) * 100) * 0;
+function readManual() { state.ea = +$('ea').value / 100; state.ts = +$('ts').value; state.un = +$('un').value; state.wt = +$('wt').value; state.ld = +$('ld').value / 100; $('ldv').textContent = $('ld').value; state.co = $('pen').checked ? 0.25 * Math.max(0, (eaMin(state.wt) - state.ea) * 100) : 0;
   $('eav').textContent = $('ea').value; $('tsv').textContent = $('ts').value; $('unv').textContent = $('un').value; $('wtv').textContent = $('wt').value; applyState(); }
-['ea', 'ts', 'un', 'wt'].forEach(id => $(id).addEventListener('input', () => { stopPlay(); readManual(); }));
-$('reset').onclick = () => { $('ea').value = 70; $('ts').value = 200; $('un').value = 5.5; $('wt').value = 0; stopPlay(); readManual(); };
+['ea', 'ts', 'un', 'wt', 'ld'].forEach(id => $(id).addEventListener('input', () => { stopPlay(); readManual(); }));
+$('pen').addEventListener('change', () => { stopPlay(); readManual(); });
+$('reset').onclick = () => { $('ea').value = 70; $('ts').value = 200; $('un').value = 5.5; $('wt').value = 0; $('ld').value = 100; stopPlay(); readManual(); };
 readManual();
 
 // ---------------- shift simulation ----------------
@@ -214,7 +230,7 @@ function drawShift(s, upto) {
 let timer = null;
 function stopPlay() { if (timer) { clearInterval(timer); timer = null; } }
 function summary(s) { const score = Math.max(0, 1 - s.gap / 3); return 'Mean efficiency ' + s.mean.toFixed(2) + ' % against ' + s.optMean.toFixed(2) + ' % for the optimum (gap ' + s.gap.toFixed(2) + ' points), score ' + score.toFixed(3) + '. The low-air penalty is a stylised assumption.'; }
-function show(s, k) { state.ea = s.ea[k] / 100; state.wt = s.water[k]; state.ts = 200; state.un = 5.5; state.co = 0.25 * Math.max(0, (eaMin(state.wt) - state.ea) * 100); $('ea').value = Math.round(s.ea[k]); $('eav').textContent = Math.round(s.ea[k]); $('wt').value = Math.round(s.water[k]); $('wtv').textContent = Math.round(s.water[k]); $('ts').value = 200; $('tsv').textContent = 200; $('un').value = 5.5; $('unv').textContent = 5.5; applyState(); }
+function show(s, k) { state.ea = s.ea[k] / 100; state.wt = s.water[k]; state.ts = 200; state.un = 5.5; state.ld = 1; $('ld').value = 100; $('ldv').textContent = 100; state.co = 0.25 * Math.max(0, (eaMin(state.wt) - state.ea) * 100); $('ea').value = Math.round(s.ea[k]); $('eav').textContent = Math.round(s.ea[k]); $('wt').value = Math.round(s.water[k]); $('wtv').textContent = Math.round(s.water[k]); $('ts').value = 200; $('tsv').textContent = 200; $('un').value = 5.5; $('unv').textContent = 5.5; applyState(); }
 function run(animate) {
   stopPlay(); const s = shift($('pol').value, +$('val').value, +$('seed').value);
   if (!animate) { drawShift(s); show(s, 23); $('res').textContent = summary(s); return s; }
