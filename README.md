@@ -65,6 +65,8 @@ Earlier machine-learning scores (419 held-out rows): average guess MAE 0.899, fo
 
 ## 8. Deployment
 
+**Simulation environment (simulation/):** BoilerSimEnv runs the heat-loss model through a 12-hour shift with drifting fuel moisture; the agent sets the excess air each 30 minutes and is graded against a provable optimum. A stylised, unmeasured low-air penalty rule makes the optimum definite. Over 200 shifts: fixed 70 % design setting is 1.65 efficiency points from the optimum, an O2 trim at 6 % 0.66, a moisture-aware policy 0.23. Live Gradio app, Space-ready, not yet deployed.
+
 | What | How | Status |
 |---|---|---|
 | Static page | GitHub Pages, folder `/docs` | needs enabling |
