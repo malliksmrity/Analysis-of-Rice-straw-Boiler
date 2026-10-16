@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rice straw boiler | 3D plant, inside flow and live model</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  select { max-width: 100%; }
+  .stage { position: relative; width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: #0c1116; }
+  .stage canvas.gl { display: block; width: 100%; height: 100%; touch-action: none; }
+  .hud { position: absolute; left: 10px; top: 10px; font-size: 13px; line-height: 1.5; color: #e9eff2; background: rgba(10,14,18,.78); padding: 8px 10px; border-radius: 4px; pointer-events: none; max-width: 78%; }
+  .hud b { color: #6fd3e1; } .bar { height: 7px; border-radius: 2px; margin: 2px 0 5px; }
+  .legend { position: absolute; right: 8px; bottom: 8px; font-size: 12px; color: #cfd8de; background: rgba(10,14,18,.78); padding: 6px 8px; border-radius: 4px; pointer-events: none; line-height: 1.6; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  .grid2 { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); } @media (min-width: 700px) { .grid2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } } .grid2 > div { min-width: 0; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  @media (max-width: 560px) { .hud { font-size: 11px; padding: 5px 7px; } .hud .bar { display: none; } .stage { height: 340px; } .legend { font-size: 10px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><span>Smrity Mallik &middot; Simulation</span><a href="https://github.com/malliksmrity/Analysis-of-Rice-straw-Boiler" target="_blank" rel="noopener">Code on GitHub</a></div>
+  <p class="kicker">Biomass boiler &middot; final-year project with Thermax &middot; simulation and model</p>
+  <h1>A rice-straw boiler you can turn the dials on</h1>
+  <p class="lead">Two 3D views of the same boiler, driven live by a heat-loss model built from its design workbook: the plant seen from outside, and the flow of gas, water and steam inside. Change a dial and both views, and every chart, change at once. At the design point the boiler is 81.3 percent efficient.</p>
+  <noscript><p class="callout">This page needs JavaScript and WebGL.</p></noscript>
+
+  <h2>1. Dials</h2>
+  <div class="callout">
+    <div class="grid2">
+      <div><label for="ea">Excess air: <b id="eav">70</b> %</label><br><input id="ea" type="range" min="20" max="90" value="70" style="width:100%"></div>
+      <div><label for="ts">Stack temperature: <b id="tsv">200</b> &deg;C</label><br><input id="ts" type="range" min="140" max="300" value="200" style="width:100%"></div>
+      <div><label for="un">Unburnt loss: <b id="unv">5.5</b> %</label><br><input id="un" type="range" min="2" max="9" step="0.5" value="5.5" style="width:100%"></div>
+      <div><label for="wt">Extra fuel water: <b id="wtv">0</b> kg per tonne</label><br><input id="wt" type="range" min="0" max="120" value="0" style="width:100%"></div>
+      <div><label for="ld">Boiler load: <b id="ldv">100</b> % of the design fuel feed (2,957 kg/h)</label><br><input id="ld" type="range" min="40" max="110" value="100" style="width:100%"></div>
+    </div>
+    <div class="row"><label><input id="pen" type="checkbox" checked> Include the assumed low-air penalty (not measured, see the note in section 5)</label> <button id="reset" class="btn">Back to the design point</button></div>
+    <p id="alarm" class="note" style="margin:10px 0 0"></p>
+  </div>
+
+  <h2>2. The plant from outside</h2>
+  <p>Drag to turn, scroll to zoom. The fuel conveyor and the feed fan speed follow the load and the air, the sight glass glows with the flame, the stack lamp and plume show alarms, smoke and steam. Details like platforms and the filter are for scale and are illustrative.</p>
+  <div class="stage" id="outside"><div class="hud" id="hud"></div><div class="legend"><i style="background:#9a7a3c"></i>straw <i style="background:#e8f2f8"></i>steam <i style="background:#808890"></i>smoke</div></div>
+
+  <h2>3. Inside: gas, water and steam</h2>
+  <p>The same boiler cut open. Hot flue gas (colour = temperature) passes the furnace, settling chamber, the 127-tube convection bank and the economizer, then leaves by the stack. Feed water (blue) is heated in the economizer, rises to the steam drum and leaves as steam (white). The furnace, settling chamber and bank temperatures are the workbook's iterated values; the stack temperature and air are yours.</p>
+  <div class="stage" id="inside"><div class="legend"><i style="background:#ff7a2a"></i>hot gas <i style="background:#4cc2d3"></i>cooled gas <i style="background:#3b8fd6"></i>feed water <i style="background:#ffffff"></i>steam</div></div>
+
+  <h2>4. Live charts</h2>
+  <figure><div class="box" style="height:240px"><canvas id="lA" role="img" aria-label="Efficiency and useful heat over the last minute"></canvas></div><figcaption><b>Live chart 1.</b> Efficiency and useful heat (MW) over the last 60 seconds. Move a dial and watch the line react.</figcaption></figure>
+  <figure><div class="box" style="height:250px"><canvas id="lB" role="img" aria-label="Where the fuel heat goes, over the last minute"></canvas></div><figcaption><b>Live chart 2.</b> Where the fuel heat goes over the last 60 seconds: flue gas, unburnt fuel (plus the assumed low-air penalty) and radiation, stacked.</figcaption></figure>
+  <figure><div class="box" style="height:240px"><canvas id="lC" role="img" aria-label="Stack temperature and oxygen over the last minute"></canvas></div><figcaption><b>Live chart 3.</b> Stack temperature and oxygen in the dry flue gas over the last 60 seconds.</figcaption></figure>
+  <figure><div class="box" style="height:280px"><canvas id="lD" role="img" aria-label="Efficiency against excess air with the current point"></canvas></div><figcaption><b>Live chart 4.</b> Efficiency against excess air for the current stack temperature, fuel water and penalty setting. The dot is where the boiler is now. The dashed line is the same curve without the assumed low-air penalty.</figcaption></figure>
+  <figure><div class="box" style="height:240px"><canvas id="lE" role="img" aria-label="Which dial matters most right now"></canvas></div><figcaption><b>Live chart 5.</b> Which dial matters most right now: the change in efficiency for a step in each dial (air &plusmn;10 points, stack &plusmn;20 &deg;C, unburnt &plusmn;1 point, fuel water &plusmn;25 kg/t).</figcaption></figure>
+
+  <h2>5. Run a 12-hour shift</h2>
+  <p>The fuel gets wetter and drier. A policy sets the excess air every 30 minutes and the 3D boiler follows. The score is the gap to the best possible setting.</p>
+  <div class="callout">
+    <label for="pol">Policy</label><br>
+    <select id="pol"><option value="fixed">Fixed air (value below)</option><option value="o2">O2 trim: hold oxygen at a set point</option><option value="moist">Moisture-aware (uses the noisy fuel hint)</option></select><br>
+    <label for="val">Value: <b id="valv">70</b> (fixed: air in %; O2 trim: set point is value / 10 %)</label><br><input id="val" type="range" min="20" max="90" value="70" style="width:100%"><br>
+    <label for="seed">Scenario (random seed): <b id="seedv">0</b></label><br><input id="seed" type="range" min="0" max="199" value="0" style="width:100%">
+    <div class="row"><button id="play" class="btn">Play the shift</button><button id="instant" class="btn">Show result at once</button></div>
+    <p id="res" style="margin:12px 0 0"></p>
+  </div>
+  <p class="callout"><b>Assumption, not measurement:</b> the workbook has no penalty for too little air, so a stylised rule adds one: below a minimum air (35 % plus 0.15 % per kg of extra fuel water per tonne) the efficiency drops 0.25 points for every point of air missing. Under that rule the best setting at each step is exactly that minimum. Replace it with a plant curve before drawing conclusions.</p>
+  <figure><div class="box" style="height:220px"><canvas id="c1" role="img" aria-label="Extra fuel water over the shift"></canvas></div><figcaption>Extra water in the fuel (kg per tonne). Wetter fuel needs more air.</figcaption></figure>
+  <figure><div class="box" style="height:250px"><canvas id="c2" role="img" aria-label="Excess air against minimum air"></canvas></div><figcaption>Excess air chosen (solid) against the assumed minimum air (dashed).</figcaption></figure>
+  <figure><div class="box" style="height:250px"><canvas id="c3" role="img" aria-label="Efficiency against the optimum"></canvas></div><figcaption>Efficiency of each step against the provable optimum under the assumed rule.</figcaption></figure>
+
+  <h2>6. Scores over 200 shifts</h2>
+  <p class="note">Mean over 200 seeded scenarios, computed in Python (<code>simulation/evaluate.py</code>). The live run above uses a JavaScript random generator, so one scenario is not identical to the same seed in Python; averages agree closely.</p>
+  <div class="tablewrap"><table id="tbl"><thead><tr><th>Policy</th><th>Mean efficiency (%)</th><th>Gap to optimum (points)</th><th>Mean score</th></tr></thead><tbody></tbody></table></div>
+  <figure><div class="box" style="height:240px"><canvas id="sc" role="img" aria-label="Gap to the optimum for each policy"></canvas></div><figcaption>The same table as a chart: the gap to the optimum, smaller is better.</figcaption></figure>
+
+  <h2>7. What the heat-loss model says</h2>
+  <div class="facts"><div class="fact"><b id="f1"></b><span>efficiency at the design point</span></div><div class="fact"><b id="f2"></b><span>90 % range with uncertain inputs</span></div><div class="fact"><b>6.96 kg</b><span>flue gas per kg of fuel</span></div></div>
+  <figure><div class="box" style="height:230px"><canvas id="m1" role="img" aria-label="Where the fuel heat goes"></canvas></div><figcaption>Where the fuel heat goes at the design point (70 percent excess air, 200 &deg;C stack).</figcaption></figure>
+  <figure><div class="box" style="height:280px"><canvas id="m3" role="img" aria-label="Sensitivity of efficiency to each input"></canvas></div><figcaption>How far efficiency moves when one input changes over a plausible range. Stack temperature and unburnt loss matter most (about 4 points each).</figcaption></figure>
+  <figure><div class="box" style="height:250px"><canvas id="m4" role="img" aria-label="Monte Carlo histogram"></canvas></div><figcaption>Efficiency from 5,000 random draws of the uncertain inputs (my assumed ranges). The middle 90 percent lies between 78.7 and 83.6 percent.</figcaption></figure>
+  <ul class="plain">
+    <li>The model reproduces the workbook's flue gas mass (6,958 kg per tonne of fuel) and its oxygen share (7.77 %).</li>
+    <li>It is a design calculation, not plant data. The unburnt and radiation losses are fixed values from the workbook; the 3D plant details (platforms, filter) are illustrative.</li>
+    <li>An earlier machine-learning test found nothing better than a straight line, because the data came from a straight-line formula. That is why the heat-loss model is the core.</li>
+  </ul>
+
+  <footer>Source: the author's boiler design workbook (fuel analysis, heat-capacity coefficients, stack data). Final-year B.Eng. project with Thermax. Design simulation, not plant data. 3D drawn with three.js.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="data.js"></script>
+<script src="heat_loss.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const $ = id => document.getElementById(id), clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const css = getComputedStyle(document.documentElement), accent = css.getPropertyValue('--accent').trim(), grey = css.getPropertyValue('--grey').trim(), text = css.getPropertyValue('--text').trim(), line = css.getPropertyValue('--line').trim(), soft = css.getPropertyValue('--accent-soft').trim();
+Chart.defaults.color = text; Chart.defaults.borderColor = line; Chart.defaults.font.family = '"Segoe UI", system-ui, sans-serif';
+const base = { responsive: true, maintainAspectRatio: false, animation: false };
+
+// ---------------- heat-loss model (same as src/heat_loss_model.py) ----------------
+const CP = { CO2: [22.26, 0.05981, -3.501e-05, 7.469e-09], H2O: [32.24, 0.001923, 1.055e-05, -3.595e-09], N2: [28.9, -0.001571, 8.081e-06, -2.873e-09], O2: [25.48, 0.0152, -7.155e-06, 1.312e-09], SO2: [25.78, 0.05795, -3.812e-05, 8.612e-09] };
+const heat = (sp, t0, t1) => { const c = CP[sp], F = T => c[0] * T + c[1] * T * T / 2 + c[2] * T ** 3 / 3 + c[3] * T ** 4 / 4; return F(t1) - F(t0); };
+const eaMin = w => 0.35 + 0.0015 * w;
+function model(ea, tStackC, water, unburnt, co) {
+  const n = { CO2: 26.55, H2O: 24.183333 + water / 18, SO2: 0.053125, N2: 99.925595 * (1 + ea), O2: 26.5625 * ea };
+  let q = 0; for (const sp in n) q += n[sp] * heat(sp, 303.15, tStackC + 273.15);
+  const fuelHeat = 1000 * 2609 * 4.184 - (water ? water * 2442 : 0), stack = 100 * q / fuelHeat;
+  const dry = n.O2 / (n.CO2 + n.SO2 + n.N2 + n.O2) * 100, mass = (n.CO2 * 44 + n.H2O * 18 + n.SO2 * 64 + n.N2 * 28 + n.O2 * 32) / 1000;
+  return { stack, unburnt, radiation: 1.6, co: co || 0, eff: 100 - stack - unburnt - 1.6 - (co || 0), o2dry: dry, flueKg: mass };
+}
+const coOf = (ea, w, pen) => pen ? 0.25 * Math.max(0, (eaMin(w) - ea) * 100) : 0;
+const stepEff = (ea, w) => model(ea, 200, w, 5.5, coOf(ea, w, true)).eff;
+const BASE_MASS = model(0.7, 200, 0, 5.5).flueKg;
+const S = { ea: 0.7, ts: 200, un: 5.5, wt: 0, ld: 1, pen: true };
+let M = null, alarmText = '', smokeLevel = 0, steamLevel = 0, flags = {};
+function evalState() {
+  M = model(S.ea, S.ts, S.wt, S.un, coOf(S.ea, S.wt, S.pen)); M.heatMW = 2957 * S.ld * 2609 * 4.184 / 3600 * M.eff / 100 / 1000; M.flow = M.flueKg / BASE_MASS * S.ld;
+  const belowMin = S.pen && S.ea < eaMin(S.wt) - 0.001;
+  flags = { hotStack: S.ts > 260, lowEff: M.eff < 76, starved: M.o2dry < 3.5 || belowMin };
+  smokeLevel = clamp((M.unburnt + M.co - 6) / 4 + (M.o2dry < 3.5 ? 0.8 : 0) + (belowMin ? 0.5 : 0), 0, 1); steamLevel = clamp((S.wt - 25) / 80, 0, 1);
+  alarmText = (flags.hotStack ? 'ALARM: stack too hot. ' : '') + (flags.lowEff ? 'ALARM: efficiency below 76 %. ' : '') + (flags.starved ? 'ALARM: air-starved, smoky burn. ' : '') + (steamLevel > 0.5 ? 'Wet fuel: steam. ' : '');
+}
+
+// ---------------- three.js helpers ----------------
+function makeStage(el, camPos, target, fit) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.domElement.className = 'gl'; el.insertBefore(renderer.domElement, el.firstChild);
+  const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0c1116); scene.fog = new THREE.Fog(0x0c1116, 45, 100);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 250), controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.target.set(...target); controls.maxPolarAngle = Math.PI * 0.49; camera.position.set(...camPos);
+  scene.add(new THREE.AmbientLight(0x8899aa, 0.75)); const sun = new THREE.DirectionalLight(0xffffff, 1.1); sun.position.set(8, 18, 12); scene.add(sun);
+  const gr = new THREE.GridHelper(80, 80, 0x2a3a46, 0x1a2630); gr.position.y = -0.01; scene.add(gr);
+  const T = { renderer, scene, camera, controls, moved: false };
+  controls.addEventListener('start', () => { T.moved = true; });
+  const resize = () => { const w = el.clientWidth, h = el.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); if (!T.moved) fit(T); };
+  new ResizeObserver(resize).observe(el); T.resize = resize; return T;
+}
+const mat = (c, o = 1, m = 0.5, r = 0.5) => new THREE.MeshStandardMaterial({ color: c, transparent: o < 1, opacity: o, metalness: m, roughness: r, side: THREE.DoubleSide });
+const add = (T, geo, m, x, y, z, rot) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); if (rot) o.rotation.set(...rot); T.scene.add(o); return o; };
+function label(T, txt, x, y, z) { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d'); g.fillStyle = 'rgba(10,14,18,.7)'; g.fillRect(0, 0, 256, 64); g.fillStyle = '#e9eff2'; g.font = '26px Segoe UI, Arial'; g.textAlign = 'center'; g.fillText(txt, 128, 40); const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.scale.set(4, 1, 1); s.position.set(x, y, z); T.scene.add(s); }
+function cloud(T, n, color, size, op) { const p = new Float32Array(n * 3), sd = new Float32Array(n); for (let i = 0; i < n; i++) sd[i] = Math.random(); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); const pts = new THREE.Points(g, new THREE.PointsMaterial({ color, size, transparent: true, opacity: op || 0.55, depthWrite: false })); pts.frustumCulled = false; T.scene.add(pts); return { p, sd, g, n }; }
+function colored(T, n, size) { const p = new Float32Array(n * 3), c = new Float32Array(n * 3), sd = new Float32Array(n); for (let i = 0; i < n; i++) sd[i] = Math.random(); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setAttribute('color', new THREE.BufferAttribute(c, 3)); const pts = new THREE.Points(g, new THREE.PointsMaterial({ size, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending })); pts.frustumCulled = false; T.scene.add(pts); return { p, c, sd, g, n }; }
+const tempColor = tc => { const t = clamp((tc - 120) / 760, 0, 1), c = new THREE.Color(); c.setHSL(0.62 - t * 0.6, 1, 0.35 + 0.25 * t); return c; };
+
+// ======================= VIEW 1: the plant from outside =======================
+const OUT = makeStage($('outside'), [0, 12, 30], [1, 6, 0], T => { const d = Math.max(30, 19 / (Math.tan(THREE.MathUtils.degToRad(T.camera.fov / 2)) * T.camera.aspect)); T.camera.position.set(-d * 0.15, 8 + d * 0.3, d); T.controls.target.set(1, 6, 0); T.controls.update(); });
+const O = {};
+{ // main boiler body
+  O.body = add(OUT, new THREE.BoxGeometry(9, 6.5, 5.5), mat(0x7f8d98, 1, 0.3, 0.7), -3, 3.25, 0);
+  add(OUT, new THREE.BoxGeometry(9.2, 0.5, 5.7), mat(0x4a5560), -3, 6.7, 0);
+  add(OUT, new THREE.CylinderGeometry(0.95, 0.95, 8.6, 32), mat(0xaeb9c2, 1, 0.7, 0.35), -3, 7.7, 0, [0, 0, Math.PI / 2]);   // steam drum
+  [-7.1, -4, -1, 1.1].forEach(x => add(OUT, new THREE.TorusGeometry(0.98, 0.07, 8, 32), mat(0x56626c), x, 7.7, 0, [0, Math.PI / 2, 0]));
+  // furnace front with sight glass and ash hopper
+  O.sight = add(OUT, new THREE.BoxGeometry(0.9, 0.9, 0.12), new THREE.MeshStandardMaterial({ color: 0xff7a1a, emissive: 0xff5a00, emissiveIntensity: 1.4 }), -5.4, 2.3, 2.8);
+  add(OUT, new THREE.BoxGeometry(1.3, 1.3, 0.1), mat(0x2a343c), -5.4, 2.3, 2.74);
+  add(OUT, new THREE.CylinderGeometry(1.6, 0.4, 1.8, 4), mat(0x56626c), -5.5, -0.1, 0, [0, Math.PI / 4, 0]);
+  // fuel hopper, conveyor and feeder
+  add(OUT, new THREE.CylinderGeometry(1.8, 0.7, 2.4, 4), mat(0x8b6b3a, 1, 0.1, 0.8), -10.3, 6.2, 0, [0, Math.PI / 4, 0]);
+  O.conv = add(OUT, new THREE.BoxGeometry(6.2, 0.35, 1.2), mat(0x2d343a), -12, 2.6, 0, [0, 0, 0.5]); O.conv.position.set(-12.5, 3.3, 0);
+  add(OUT, new THREE.BoxGeometry(2.2, 1.6, 1.8), mat(0x56626c), -8.7, 3.4, 0);
+  // right section: convection bank casing and economizer casing
+  add(OUT, new THREE.BoxGeometry(4.2, 4.4, 4.4), mat(0x7f8d98, 1, 0.3, 0.7), 4.2, 2.2, 0);
+  add(OUT, new THREE.BoxGeometry(3.8, 3.2, 4.0), mat(0x6f7c86, 1, 0.3, 0.7), 8.8, 1.6, 0);
+  // ducts and fans
+  add(OUT, new THREE.BoxGeometry(2.6, 0.9, 1.1), mat(0x4a5560), -8.8, 1.2, 3.6); add(OUT, new THREE.BoxGeometry(1.3, 1.1, 1.0), mat(0x4a5560), -6.8, 1.2, 3.1);
+  add(OUT, new THREE.BoxGeometry(3.4, 1.0, 1.1), mat(0x4a5560), 12.1, 0.9, 0);
+  const fanHouse = (x, y, z) => { add(OUT, new THREE.CylinderGeometry(1.15, 1.15, 0.9, 28), mat(0x3b4752), x, y, z, [Math.PI / 2, 0, 0]); const imp = new THREE.Group(); imp.position.set(x, y, z + 0.5); for (let i = 0; i < 8; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.95, 0.25), mat(0xd7dde2)); b.position.y = 0; b.rotation.z = i / 8 * Math.PI * 2; b.translateY(0.5); imp.add(b); } OUT.scene.add(imp); return imp; };
+  O.fdFan = fanHouse(-10.3, 1.3, 3.6); O.idFan = fanHouse(11.6, 1.9, 2.6);
+  // stack
+  O.stackMat = mat(0xcfd6dc, 1, 0.3, 0.7); add(OUT, new THREE.CylinderGeometry(0.75, 1.0, 14, 28), O.stackMat, 14.3, 7, 0);
+  for (let i = 0; i < 3; i++) add(OUT, new THREE.CylinderGeometry(0.78 - i * 0.0, 0.98 - i * 0.0, 1.1, 28), mat(0xd2492f), 14.3, 12.7 - i * 2.4, 0);
+  O.lamp = add(OUT, new THREE.SphereGeometry(0.28, 12, 12), new THREE.MeshStandardMaterial({ color: 0x2a2a2a, emissive: 0x44ff88, emissiveIntensity: 1 }), 14.3, 14.2, 0);
+  // platform with legs and railing, steam pipe with valve
+  add(OUT, new THREE.BoxGeometry(11, 0.18, 1.1), mat(0x56626c), -2, 4.3, 3.4); [-7, -2, 3].forEach(x => add(OUT, new THREE.BoxGeometry(0.16, 4.3, 0.16), mat(0x56626c), x, 2.15, 3.8));
+  add(OUT, new THREE.BoxGeometry(11, 0.06, 0.06), mat(0xd2a22f), -2, 5.3, 3.9); add(OUT, new THREE.BoxGeometry(11, 0.06, 0.06), mat(0xd2a22f), -2, 4.8, 3.9);
+  add(OUT, new THREE.CylinderGeometry(0.2, 0.2, 9, 12), mat(0x9aa5ae, 1, 0.8, 0.3), 3.2, 8.4, 0, [0, 0, Math.PI / 2]); O.vent = new THREE.Vector3(7.8, 8.9, 0);
+  add(OUT, new THREE.TorusGeometry(0.34, 0.06, 8, 20), mat(0xd2492f), 3.0, 8.4, 0.5, [Math.PI / 2, 0, 0]);
+  add(OUT, new THREE.CylinderGeometry(0.15, 0.15, 5.5, 10), mat(0x3b8fd6, 1, 0.5, 0.4), 8.8, 4.6, 0);   // feed water pipe up from the economizer
+  add(OUT, new THREE.CylinderGeometry(0.15, 0.15, 11.8, 10), mat(0x3b8fd6, 1, 0.5, 0.4), 3, 7.3, -0.9, [0, 0, Math.PI / 2]);
+  label(OUT, 'Steam drum', -3, 9.5, 0); label(OUT, 'Furnace', -5.4, 5.2, 3); label(OUT, 'Fuel feed', -11, 7.8, 0); label(OUT, 'FD fan', -10.3, 3.6, 3.6); label(OUT, 'Economizer', 8.8, 4.2, 2.6); label(OUT, 'ID fan', 11.6, 4.2, 2.6); label(OUT, 'Stack', 14.3, 15.6, 0);
+}
+O.straw = cloud(OUT, 70, 0x9a7a3c, 0.4, 0.95); O.smoke = cloud(OUT, 300, 0x808890, 0.8); O.steam = cloud(OUT, 260, 0xe8f2f8, 0.7); O.vsteam = cloud(OUT, 160, 0xffffff, 0.55);
+
+// ======================= VIEW 2: inside (gas, water, steam) =======================
+const INN = makeStage($('inside'), [0, 8, 28], [1, 4, 0], T => { const d = Math.max(24, 20 / (Math.tan(THREE.MathUtils.degToRad(T.camera.fov / 2)) * T.camera.aspect)); T.camera.position.set(2 - d * 0.1, 5 + d * 0.22, d); T.controls.target.set(1, 4, 0); T.controls.update(); });
+const IN = {};
+{ const steel = (c, o) => mat(c, o, 0.5, 0.5);
+  IN.shell = add(INN, new THREE.BoxGeometry(7, 4.5, 4), steel(0x6b7a86, 0.22), -8, 2.25, 0);
+  IN.flame = add(INN, new THREE.BoxGeometry(5.6, 3, 3.2), new THREE.MeshStandardMaterial({ color: 0xff7a1a, emissive: 0xff5a00, emissiveIntensity: 1.2, transparent: true, opacity: 0.55 }), -8, 1.7, 0);
+  IN.flameLight = new THREE.PointLight(0xff7a2a, 40, 14); IN.flameLight.position.set(-8, 2, 0); INN.scene.add(IN.flameLight);
+  add(INN, new THREE.BoxGeometry(2.2, 0.25, 1.6), steel(0x8b6b3a, 1), -13.2, 3.4, 0);
+  add(INN, new THREE.BoxGeometry(3.4, 3.4, 3.4), steel(0x6b7a86, 0.22), -1.2, 1.7, 0);
+  add(INN, new THREE.BoxGeometry(5.4, 3.4, 3.4), steel(0x6b7a86, 0.18), 3.6, 1.7, 0);
+  { const g = new THREE.CylinderGeometry(0.09, 0.09, 3.2, 8), m = mat(0xb0b8bf, 1, 0.7, 0.35), im = new THREE.InstancedMesh(g, m, 127), d = new THREE.Object3D(); let k = 0;
+    for (let i = 0; i < 17 && k < 127; i++) for (let j = 0; j < 8 && k < 127; j++) { d.position.set(1.4 + i * 0.26, 1.7, -1.4 + j * 0.4); d.updateMatrix(); im.setMatrixAt(k++, d.matrix); } INN.scene.add(im); }
+  add(INN, new THREE.BoxGeometry(4.2, 2.8, 3.4), steel(0x6b7a86, 0.18), 9.6, 1.4, 0);
+  { const g = new THREE.CylinderGeometry(0.1, 0.1, 3.2, 8); g.rotateX(Math.PI / 2); const m = new THREE.MeshStandardMaterial({ color: 0x3b8fd6, metalness: 0.4, roughness: 0.4, emissive: 0x0a2a55 }), im = new THREE.InstancedMesh(g, m, 60), d = new THREE.Object3D(); let k = 0;
+    for (let i = 0; i < 10; i++) for (let j = 0; j < 6; j++) { d.position.set(8 + i * 0.28 + (j % 2) * 0.14, 0.5 + j * 0.37, 0); d.updateMatrix(); im.setMatrixAt(k++, d.matrix); } INN.scene.add(im); }
+  IN.stackMat = steel(0x8a96a0, 0.5); add(INN, new THREE.CylinderGeometry(0.55, 0.7, 10, 24, 1, true), IN.stackMat, 14, 5, 0);
+  add(INN, new THREE.CylinderGeometry(0.9, 0.9, 7, 24, 1, true), steel(0xaeb9c2, 0.3), 4.5, 6.2, 0, [0, 0, Math.PI / 2]);  // steam drum (see-through)
+  [-0.5, 8].forEach(x => add(INN, new THREE.CylinderGeometry(0.12, 0.12, 3.6, 8), mat(0x3b8fd6, 1, 0.5, 0.4), x, 4.2, 1.6));  // riser and downcomer pipes
+  label(INN, 'Furnace', -8, 5.4, 0); label(INN, 'Settling chamber', -1.2, 4.5, 0); label(INN, 'Convection bank', 3.6, 3.9, 0); label(INN, 'Economizer', 9.6, 3.9, 0); label(INN, 'Steam drum', 4.5, 7.8, 0); label(INN, 'Stack', 14, 10.8, 0);
+}
+const PATH = [[-9.5, 1.7], [-6.5, 1.7], [-4, 1.7], [-1.2, 1.7], [1.2, 1.7], [3.6, 1.7], [6.0, 1.4], [9.6, 1.2], [12.2, 1.0], [14, 1.0], [14, 5], [14, 10.5]];
+const TEMP = [862, 862, 787, 787, 787, 389, 389, 300, 200, 200, 200, 190];
+const segLen = [], cum = [0]; for (let i = 1; i < PATH.length; i++) { const l = Math.hypot(PATH[i][0] - PATH[i - 1][0], PATH[i][1] - PATH[i - 1][1]); segLen.push(l); cum.push(cum[i - 1] + l); }
+const LEN = cum[cum.length - 1];
+function seg(s) { let i = 1; while (i < cum.length - 1 && cum[i] < s) i++; return [i, (s - cum[i - 1]) / segLen[i - 1]]; }
+IN.gas = colored(INN, 1100, 0.22); const GS = new Float32Array(1100), GJ = new Float32Array(2200); for (let i = 0; i < 1100; i++) { GS[i] = Math.random() * LEN; GJ[i * 2] = (Math.random() - 0.5) * 2.4; GJ[i * 2 + 1] = (Math.random() - 0.5) * 1.2; }
+IN.water = colored(INN, 260, 0.2); IN.smokeIn = cloud(INN, 200, 0x808890, 0.7);
+
+// ---------------- state -> visuals ----------------
+function applyState() {
+  evalState(); TEMP[8] = TEMP[9] = TEMP[10] = S.ts; TEMP[7] = (389 + S.ts) / 2; TEMP[11] = S.ts - 10;
+  IN.flame.material.emissiveIntensity = 0.6 + 0.9 * (1 - (S.ea - 0.2) / 0.7 * 0.5); IN.flame.material.color.setHSL(0.07 + 0.04 * (S.ea - 0.2) / 0.7, 1, 0.5); IN.flameLight.intensity = 25 + 30 * (1 - (S.ea - 0.2) / 0.7 * 0.6);
+  IN.flame.scale.set(0.55 + 0.55 * S.ld, 0.65 + 0.4 * S.ld, 0.65 + 0.4 * S.ld);
+  IN.stackMat.color.set(flags.hotStack ? 0xd9402e : 0x8a96a0); IN.shell.material.color.set(flags.lowEff ? 0xb03a2e : 0x6b7a86); IN.shell.material.opacity = flags.lowEff ? 0.38 : 0.22;
+  O.stackMat.color.set(flags.hotStack ? 0xe0503a : 0xcfd6dc); O.body.material.color.set(flags.lowEff ? 0xa05048 : 0x7f8d98);
+  O.sight.material.emissiveIntensity = 0.5 + 1.3 * S.ld * (1 - (S.ea - 0.2) / 0.7 * 0.4); O.sight.material.color.setHSL(0.07 + 0.05 * (S.ea - 0.2) / 0.7, 1, 0.5); O.sight.material.emissive.setHSL(0.06 + 0.05 * (S.ea - 0.2) / 0.7, 1, 0.45);
+  O.lamp.material.emissive.set(alarmText.includes('ALARM') ? 0xff3322 : 0x44ff88);
+  const bar = (v, c) => '<div class="bar" style="width:' + Math.max(1, v) + '%;background:' + c + '"></div>';
+  $('hud').innerHTML = '<div>Efficiency <b>' + M.eff.toFixed(1) + ' %</b></div>' + bar(M.eff, '#4cc2d3') + '<div>Flue gas loss ' + M.stack.toFixed(1) + ' %</div>' + bar(M.stack * 4, '#8a8a82') + '<div>Unburnt ' + (M.unburnt + M.co).toFixed(1) + ' %</div>' + bar((M.unburnt + M.co) * 4, '#b35c1e') + '<div>Radiation ' + M.radiation.toFixed(1) + ' %</div>' + bar(M.radiation * 4, '#6b4c9a') + '<div>Oxygen (dry) ' + M.o2dry.toFixed(1) + ' %</div><div>Fuel ' + Math.round(2957 * S.ld).toLocaleString() + ' kg/h, useful heat ' + M.heatMW.toFixed(2) + ' MW</div>' + (alarmText ? '<div style="color:#ff8a7a;font-weight:600">' + alarmText + '</div>' : '');
+  $('alarm').textContent = alarmText || 'No alarms.'; $('alarm').style.color = alarmText.includes('ALARM') ? '#ff8a7a' : '';
+  ['ea', 'ts', 'un', 'wt', 'ld'].forEach(id => { const el = $(id + 'v'); if (el) el.textContent = $(id).value; });
+  updateStatic();
+}
+function readDials() { S.ea = +$('ea').value / 100; S.ts = +$('ts').value; S.un = +$('un').value; S.wt = +$('wt').value; S.ld = +$('ld').value / 100; S.pen = $('pen').checked; applyState(); }
+
+// ---------------- charts ----------------
+const charts = {};
+function mk(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); return charts[id]; }
+const N = 300, blank = () => Array(N).fill(null), labels = Array.from({ length: N }, (_, i) => ((i - N + 1) / 5).toFixed(0));
+const xAxis = { ticks: { maxTicksLimit: 7 }, title: { display: true, text: 'Seconds ago' } };
+mk('lA', { type: 'line', data: { labels, datasets: [{ label: 'Efficiency (%)', data: blank(), borderColor: accent, pointRadius: 0, borderWidth: 2, yAxisID: 'y' }, { label: 'Useful heat (MW)', data: blank(), borderColor: '#f0b84a', pointRadius: 0, borderWidth: 1.6, yAxisID: 'y2' }] }, options: Object.assign({}, base, { scales: { x: xAxis, y: { min: 60, max: 90, title: { display: true, text: 'Efficiency (%)' } }, y2: { position: 'right', min: 0, max: 9, grid: { drawOnChartArea: false }, title: { display: true, text: 'MW' } } } }) });
+mk('lB', { type: 'line', data: { labels, datasets: [{ label: 'Flue gas loss', data: blank(), borderColor: '#8a8a82', backgroundColor: 'rgba(138,138,130,.5)', fill: true, pointRadius: 0, borderWidth: 1 }, { label: 'Unburnt and low-air penalty', data: blank(), borderColor: '#b35c1e', backgroundColor: 'rgba(179,92,30,.5)', fill: true, pointRadius: 0, borderWidth: 1 }, { label: 'Radiation', data: blank(), borderColor: '#6b4c9a', backgroundColor: 'rgba(107,76,154,.5)', fill: true, pointRadius: 0, borderWidth: 1 }] }, options: Object.assign({}, base, { scales: { x: xAxis, y: { stacked: true, min: 0, max: 30, title: { display: true, text: '% of fuel heat lost' } } } }) });
+mk('lC', { type: 'line', data: { labels, datasets: [{ label: 'Stack temperature (C)', data: blank(), borderColor: '#ff8a40', pointRadius: 0, borderWidth: 1.8, yAxisID: 'y' }, { label: 'Oxygen, dry (%)', data: blank(), borderColor: '#4cc2d3', pointRadius: 0, borderWidth: 1.8, yAxisID: 'y2' }] }, options: Object.assign({}, base, { scales: { x: xAxis, y: { min: 120, max: 320, title: { display: true, text: 'C' } }, y2: { position: 'right', min: 0, max: 14, grid: { drawOnChartArea: false }, title: { display: true, text: 'O2 %' } } } }) });
+const eaGrid = []; for (let e = 20; e <= 90; e += 2) eaGrid.push(e);
+mk('lD', { type: 'line', data: { datasets: [{ label: 'with the assumed low-air penalty', data: [], borderColor: accent, pointRadius: 0, borderWidth: 2 }, { label: 'without the penalty', data: [], borderColor: grey, borderDash: [6, 4], pointRadius: 0, borderWidth: 1.4 }, { label: 'you are here', data: [], borderColor: '#ff5a4e', backgroundColor: '#ff5a4e', pointRadius: 8, showLine: false }] }, options: Object.assign({}, base, { parsing: false, scales: { x: { type: 'linear', min: 20, max: 90, title: { display: true, text: 'Excess air (%)' } }, y: { title: { display: true, text: 'Efficiency (%)' } } } }) });
+mk('lE', { type: 'bar', data: { labels: ['Excess air +/-10 points', 'Stack +/-20 C', 'Unburnt +/-1 point', 'Fuel water +/-25 kg/t'], datasets: [{ data: [0, 0, 0, 0], backgroundColor: accent }] }, options: Object.assign({}, base, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, title: { display: true, text: 'Efficiency change (points, half of the swing)' } } } }) });
+function updateStatic() {   // charts that depend on the dials but not on time
+  const pen = S.pen, c = charts.lD; c.data.datasets[0].data = eaGrid.map(e => ({ x: e, y: model(e / 100, S.ts, S.wt, S.un, coOf(e / 100, S.wt, pen)).eff })); c.data.datasets[1].data = eaGrid.map(e => ({ x: e, y: model(e / 100, S.ts, S.wt, S.un, 0).eff })); c.data.datasets[2].data = [{ x: S.ea * 100, y: M.eff }]; c.update('none');
+  const f = (ea, ts, un, wt) => model(ea, ts, wt, un, coOf(ea, wt, pen)).eff, sw = (a, b) => Math.abs(a - b) / 2;
+  charts.lE.data.datasets[0].data = [sw(f(clamp(S.ea + 0.1, 0.2, 0.9), S.ts, S.un, S.wt), f(clamp(S.ea - 0.1, 0.2, 0.9), S.ts, S.un, S.wt)), sw(f(S.ea, S.ts + 20, S.un, S.wt), f(S.ea, S.ts - 20, S.un, S.wt)), sw(f(S.ea, S.ts, S.un + 1, S.wt), f(S.ea, S.ts, S.un - 1, S.wt)), sw(f(S.ea, S.ts, S.un, S.wt + 25), f(S.ea, S.ts, S.un, Math.max(0, S.wt - 25)))].map(v => +v.toFixed(2)); charts.lE.update('none');
+}
+let tick = 0;
+function sample() { if (!M) return; [['lA', [M.eff, M.heatMW]], ['lB', [M.stack, M.unburnt + M.co, M.radiation]], ['lC', [S.ts, M.o2dry]]].forEach(([id, v]) => { const ch = charts[id]; ch.data.datasets.forEach((d, i) => { d.data.shift(); d.data.push(+v[i].toFixed(2)); }); ch.update('none'); }); }
+setInterval(sample, 200);
+
+// ---------------- animation loop ----------------
+let t0 = performance.now(), seq = 0;
+const SPLEN = 11;
+function frame(now) {
+  const dt = Math.min(0.05, (now - t0) / 1000); t0 = now; const tt = now / 1000, flow = M.flow, load = S.ld;
+  // outside
+  O.fdFan.rotation.z -= dt * (4 + 14 * (S.ea * 1.2 + 0.2) * load); O.idFan.rotation.z += dt * (4 + 12 * flow);
+  for (let i = 0; i < O.straw.n; i++) { const k = (tt * (0.25 + 0.5 * load) + O.straw.sd[i]) % 1, on = i < O.straw.n * clamp(load * 0.95, 0, 1); O.straw.p[i * 3] = on ? -15.2 + k * 6.2 : 0; O.straw.p[i * 3 + 1] = on ? 1.5 + k * 3.2 + 0.2 : -50; O.straw.p[i * 3 + 2] = on ? (O.straw.sd[i] - 0.5) * 0.9 : 0; }
+  for (let i = 0; i < O.smoke.n; i++) { const k = (tt / 2.4 + O.smoke.sd[i]) % 1, on = i < O.smoke.n * smokeLevel; O.smoke.p[i * 3] = on ? 14.3 + Math.sin(O.smoke.sd[i] * 40) * 0.4 * k + k * 2.6 : 0; O.smoke.p[i * 3 + 1] = on ? 14.4 + k * 6 : -50; O.smoke.p[i * 3 + 2] = on ? (O.smoke.sd[i] - 0.5) * 1.6 * k : 0; }
+  for (let i = 0; i < O.steam.n; i++) { const k = (tt / 2.8 + O.steam.sd[i]) % 1, on = i < O.steam.n * clamp(steamLevel * 0.9 + 0.1 * load, 0, 1); O.steam.p[i * 3] = on ? 14.3 + (O.steam.sd[i] - 0.5) * 0.8 * k + k * 1.2 : 0; O.steam.p[i * 3 + 1] = on ? 14.4 + k * 5 : -50; O.steam.p[i * 3 + 2] = on ? Math.sin(O.steam.sd[i] * 33) * 0.6 * k : 0; }
+  for (let i = 0; i < O.vsteam.n; i++) { const k = (tt * (0.6 + 0.6 * load) + O.vsteam.sd[i]) % 1, on = i < O.vsteam.n * clamp(M.heatMW / 9, 0, 1); O.vsteam.p[i * 3] = on ? O.vent.x + k * 2.2 : 0; O.vsteam.p[i * 3 + 1] = on ? O.vent.y + k * 2.2 + Math.sin(O.vsteam.sd[i] * 20) * 0.2 : -50; O.vsteam.p[i * 3 + 2] = on ? (O.vsteam.sd[i] - 0.5) * 0.8 : 0; }
+  [O.straw, O.smoke, O.steam, O.vsteam].forEach(c => { c.g.attributes.position.needsUpdate = true; });
+  // inside: gas
+  const G = IN.gas, vis = Math.max(150, Math.min(G.n, Math.round(G.n * 0.62 * flow)));
+  for (let i = 0; i < G.n; i++) { GS[i] += dt * 4.2 * flow * (GS[i] > cum[cum.length - 2] ? 1.6 : 1); if (GS[i] > LEN) GS[i] -= LEN; const [j, f] = seg(GS[i]), x = PATH[j - 1][0] + (PATH[j][0] - PATH[j - 1][0]) * f, y = PATH[j - 1][1] + (PATH[j][1] - PATH[j - 1][1]) * f, tc = TEMP[j - 1] + (TEMP[j] - TEMP[j - 1]) * f, vert = GS[i] > cum[cum.length - 2], c = tempColor(tc), on = i < vis ? 1 : 0;
+    G.p[i * 3] = x + (vert ? GJ[i * 2] * 0.15 : 0); G.p[i * 3 + 1] = y + (vert ? 0 : GJ[i * 2 + 1] * 0.7); G.p[i * 3 + 2] = vert ? GJ[i * 2 + 1] * 0.3 : GJ[i * 2] * 0.7; G.c[i * 3] = c.r * on; G.c[i * 3 + 1] = c.g * on; G.c[i * 3 + 2] = c.b * on; }
+  G.g.attributes.position.needsUpdate = true; G.g.attributes.color.needsUpdate = true;
+  // inside: water (economizer, riser, drum) and steam (drum, out)
+  const W = IN.water, rate = clamp(M.heatMW / 7.3, 0.1, 1.6) * 0.5;
+  for (let i = 0; i < W.n; i++) { const k = (tt * rate + W.sd[i]) % 1; let x, y, z, col; const lane = (W.sd[i] * 7.7) % 1;
+    if (k < 0.34) { const f = k / 0.34; x = 7.9 + f * 3.4; y = 0.5 + (Math.floor(lane * 6)) * 0.37; z = (lane - 0.5) * 0.6; col = [0.2 + 0.4 * f, 0.5 + 0.2 * f, 1.0]; }          // feed water through the economizer, warming
+    else if (k < 0.5) { const f = (k - 0.34) / 0.16; x = 8 - f * 8.5; y = 4.2 + f * 1.7; z = 1.6; col = [0.5, 0.75, 1.0]; }                                                 // along the pipe to the drum
+    else if (k < 0.72) { const f = (k - 0.5) / 0.22; x = 0.5 + f * 4; y = 6.2 + Math.sin(lane * 30) * 0.3; z = (lane - 0.5) * 1.1; col = [0.8 - 0.2 * (1 - f), 0.9, 1.0]; }          // in the drum
+    else { const f = (k - 0.72) / 0.28; x = 5 + f * 5.5; y = 6.5 + f * 0.6; z = (lane - 0.5) * 0.6; col = [1, 1, 1]; }                                                           // steam leaves
+    W.p[i * 3] = x; W.p[i * 3 + 1] = y; W.p[i * 3 + 2] = z; W.c[i * 3] = col[0]; W.c[i * 3 + 1] = col[1]; W.c[i * 3 + 2] = col[2]; }
+  W.g.attributes.position.needsUpdate = true; W.g.attributes.color.needsUpdate = true;
+  const SK = IN.smokeIn; for (let i = 0; i < SK.n; i++) { const k = (tt / 2.2 + SK.sd[i]) % 1, on = i < SK.n * smokeLevel; SK.p[i * 3] = on ? 14 + k * 2.2 : 0; SK.p[i * 3 + 1] = on ? 10.3 + k * 4 : -50; SK.p[i * 3 + 2] = on ? (SK.sd[i] - 0.5) * 1.2 * k : 0; } SK.g.attributes.position.needsUpdate = true;
+  OUT.controls.update(); OUT.renderer.render(OUT.scene, OUT.camera); INN.controls.update(); INN.renderer.render(INN.scene, INN.camera);
+  requestAnimationFrame(frame);
+}
+
+// ---------------- dials, shift, tables ----------------
+let timer = null; const stopPlay = () => { if (timer) { clearInterval(timer); timer = null; } };
+['ea', 'ts', 'un', 'wt', 'ld'].forEach(id => $(id).addEventListener('input', () => { stopPlay(); readDials(); }));
+$('pen').addEventListener('change', () => { stopPlay(); readDials(); });
+$('reset').onclick = () => { $('ea').value = 70; $('ts').value = 200; $('un').value = 5.5; $('wt').value = 0; $('ld').value = 100; stopPlay(); readDials(); };
+function rng(seed) { let a = (seed + 1) * 2654435761 >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const normal = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+function shift(policy, value, seed) {
+  const r = rng(seed), water = [clamp(40 + 25 * normal(r), 0, 120)];
+  for (let i = 1; i < 24; i++) water.push(clamp(water[i - 1] + 12 * normal(r), 0, 120));
+  let last = 70; const E = [], O_ = [], A = [];
+  for (let k = 0; k < 24; k++) { const w = water[k], o2 = model(last / 100, 200, w, 5.5).o2dry, hint = w + 20 * normal(r); let ea = policy === 'fixed' ? value : policy === 'o2' ? last - 2 * (o2 - value / 10) : 100 * (eaMin(Math.max(0, hint)) + 0.03); ea = clamp(ea, 20, 90); last = ea; E.push(stepEff(ea / 100, w)); O_.push(stepEff(eaMin(w), w)); A.push(ea); }
+  const m = a => a.reduce((x, y) => x + y, 0) / a.length; return { water, ea: A, eff: E, opt: O_, mean: m(E), optMean: m(O_), gap: m(O_) - m(E) };
+}
+function lineChart(id, lab, sets, yt) { mk(id, { type: 'line', data: { labels: lab, datasets: sets }, options: Object.assign({}, base, { scales: { x: { title: { display: true, text: 'Step (30 minutes)' } }, y: { title: { display: true, text: yt } } } }) }); }
+function drawShift(s, upto) { const n = upto || 24, x = s.water.slice(0, n).map((_, i) => i + 1);
+  lineChart('c1', x, [{ label: 'extra fuel water', data: s.water.slice(0, n), borderColor: '#6b4c9a', pointRadius: 0 }], 'kg per tonne');
+  lineChart('c2', x, [{ label: 'your policy', data: s.ea.slice(0, n), borderColor: accent, pointRadius: 0 }, { label: 'assumed minimum air', data: s.water.slice(0, n).map(w => 100 * eaMin(w)), borderColor: text, borderDash: [5, 4], pointRadius: 0 }], 'Excess air (%)');
+  lineChart('c3', x, [{ label: 'your policy', data: s.eff.slice(0, n), borderColor: accent, pointRadius: 0 }, { label: 'provable optimum', data: s.opt.slice(0, n), borderColor: text, borderDash: [5, 4], pointRadius: 0 }], 'Efficiency (%)'); }
+const summary = s => 'Mean efficiency ' + s.mean.toFixed(2) + ' % against ' + s.optMean.toFixed(2) + ' % for the optimum (gap ' + s.gap.toFixed(2) + ' points), score ' + Math.max(0, 1 - s.gap / 3).toFixed(3) + '. The low-air penalty is a stylised assumption.';
+function showStep(s, k) { $('pen').checked = true; $('ea').value = Math.round(s.ea[k]); $('wt').value = Math.round(s.water[k]); $('ts').value = 200; $('un').value = 5.5; $('ld').value = 100; readDials(); }
+function run(animate) { stopPlay(); const s = shift($('pol').value, +$('val').value, +$('seed').value);
+  if (!animate) { drawShift(s); showStep(s, 23); $('res').textContent = summary(s); return s; }
+  let k = 0; timer = setInterval(() => { showStep(s, k); drawShift(s, k + 1); $('res').textContent = 'Playing: step ' + (k + 1) + ' of 24, efficiency ' + s.eff[k].toFixed(2) + ' % (optimum ' + s.opt[k].toFixed(2) + ' %)'; k++; if (k >= 24) { stopPlay(); $('res').textContent = summary(s); } }, 450); return s; }
+$('val').oninput = function () { $('valv').textContent = this.value; }; $('seed').oninput = function () { $('seedv').textContent = this.value; };
+$('play').onclick = () => run(true); $('instant').onclick = () => run(false);
+drawShift(shift('fixed', 70, 0));
+{ const tb = document.querySelector('#tbl tbody'), P = window.BSIM.policies, keys = Object.keys(P); keys.forEach(k => { const v = P[k], tr = document.createElement('tr'); [k, v.mean_efficiency, v.mean_gap_points, v.mean_score].forEach(c => { const td = document.createElement('td'); td.textContent = c; tr.appendChild(td); }); tb.appendChild(tr); });
+  mk('sc', { type: 'bar', data: { labels: keys, datasets: [{ data: keys.map(k => P[k].mean_gap_points), backgroundColor: keys.map(k => k.includes('Moisture') ? accent : grey) }] }, options: Object.assign({}, base, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { y: { ticks: { autoSkip: false, font: { size: 11 } } }, x: { beginAtZero: true, title: { display: true, text: 'Gap to the optimum (points)' } } } }) }); }
+{ const H = window.HEAT, dp = H.design_point; $('f1').textContent = dp.efficiency.toFixed(1) + ' %'; $('f2').textContent = H.monte_carlo.p5.toFixed(1) + ' to ' + H.monte_carlo.p95.toFixed(1) + ' %';
+  const parts = [['Useful heat', dp.efficiency, accent], ['Flue gas', dp.stack_loss, grey], ['Unburnt fuel', dp.unburnt_loss, '#b35c1e'], ['Radiation', dp.radiation_loss, '#6b4c9a']];
+  mk('m1', { type: 'bar', data: { labels: ['Fuel heat'], datasets: parts.map(p => ({ label: p[0], data: [p[1]], backgroundColor: p[2] })) }, options: Object.assign({}, base, { indexAxis: 'y', scales: { x: { stacked: true, max: 100, title: { display: true, text: 'Share of fuel heat (%)' } }, y: { stacked: true } } }) });
+  const T = H.tornado; mk('m3', { type: 'bar', data: { labels: T.map(r => r.input), datasets: [{ data: T.map(r => r.swing), backgroundColor: accent }] }, options: Object.assign({}, base, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { y: { ticks: { autoSkip: false, font: { size: 11 } } }, x: { beginAtZero: true, title: { display: true, text: 'Change in efficiency (points)' } } } }) });
+  const E = H.monte_carlo_edges; mk('m4', { type: 'bar', data: { labels: H.monte_carlo_hist.map((_, i) => ((E[i] + E[i + 1]) / 2).toFixed(1)), datasets: [{ data: H.monte_carlo_hist, backgroundColor: soft, borderColor: accent, borderWidth: 1, categoryPercentage: 1, barPercentage: 1 }] }, options: Object.assign({}, base, { plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Efficiency (%)' } }, y: { title: { display: true, text: 'Draws' } } } }) }); }
+readDials(); OUT.resize(); INN.resize(); requestAnimationFrame(frame);
+window.__boiler = { S, model, shift, readDials, charts, get M() { return M; }, get flags() { return flags; } };
+</script>
+</body>
+</html>

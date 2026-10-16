@@ -1,0 +1,287 @@
+{
+  "design_point": {
+    "excess_air_pct": 70.0,
+    "stack_loss": 11.62,
+    "unburnt_loss": 5.5,
+    "radiation_loss": 1.6,
+    "co_loss": 0.0,
+    "efficiency": 81.28,
+    "flue_gas_kg_per_kg_fuel": 6.96,
+    "o2_dry_pct": 8.65,
+    "o2_wet_pct": 7.77
+  },
+  "checks_against_workbook": {
+    "flue_gas_kg_per_1000kg_fuel_model": 6958.4,
+    "workbook_6958_4": 6958.4,
+    "o2_wet_pct_model": 7.77,
+    "workbook_o2_vol_pct": 7.77,
+    "o2_dry_pct_model": 8.65
+  },
+  "monte_carlo": {
+    "n": 5000,
+    "mean": 81.15,
+    "p5": 78.71,
+    "p95": 83.56,
+    "assumed_ranges": "excess air 55-85 % (uniform), stack 200 C +/- 15 (normal), extra fuel water 0-40 kg per t (half-normal), unburnt 4-7 %, radiation 1.2-2.0 %"
+  },
+  "tornado": [
+    {
+      "input": "Stack temperature 180 vs 240 C",
+      "high": 82.67,
+      "low": 78.47,
+      "swing": 4.2
+    },
+    {
+      "input": "Unburnt loss 3.5 vs 7.5 %",
+      "high": 83.28,
+      "low": 79.28,
+      "swing": 4.0
+    },
+    {
+      "input": "Excess air 50 % vs 90 %",
+      "high": 82.44,
+      "low": 80.12,
+      "swing": 2.33
+    },
+    {
+      "input": "Ambient 10 vs 40 C",
+      "high": 79.95,
+      "low": 81.95,
+      "swing": 2.0
+    },
+    {
+      "input": "Radiation loss 1.0 vs 2.5 %",
+      "high": 81.88,
+      "low": 80.38,
+      "swing": 1.5
+    },
+    {
+      "input": "Fuel wetter by 0 vs 100 kg water per t",
+      "high": 81.28,
+      "low": 80.71,
+      "swing": 0.57
+    }
+  ],
+  "optional_co_penalty_assumption": {
+    "threshold_30": {
+      "best_excess_air_pct": 30,
+      "best_efficiency": 83.61
+    },
+    "threshold_40": {
+      "best_excess_air_pct": 40,
+      "best_efficiency": 83.03
+    },
+    "threshold_50": {
+      "best_excess_air_pct": 50,
+      "best_efficiency": 82.44
+    }
+  },
+  "sweep_excess_air": [
+    {
+      "ea": 10,
+      "stack": 8.13,
+      "efficiency": 84.77
+    },
+    {
+      "ea": 15,
+      "stack": 8.42,
+      "efficiency": 84.48
+    },
+    {
+      "ea": 20,
+      "stack": 8.71,
+      "efficiency": 84.19
+    },
+    {
+      "ea": 25,
+      "stack": 9.0,
+      "efficiency": 83.9
+    },
+    {
+      "ea": 30,
+      "stack": 9.29,
+      "efficiency": 83.61
+    },
+    {
+      "ea": 35,
+      "stack": 9.58,
+      "efficiency": 83.32
+    },
+    {
+      "ea": 40,
+      "stack": 9.87,
+      "efficiency": 83.03
+    },
+    {
+      "ea": 45,
+      "stack": 10.16,
+      "efficiency": 82.74
+    },
+    {
+      "ea": 50,
+      "stack": 10.46,
+      "efficiency": 82.44
+    },
+    {
+      "ea": 55,
+      "stack": 10.75,
+      "efficiency": 82.15
+    },
+    {
+      "ea": 60,
+      "stack": 11.04,
+      "efficiency": 81.86
+    },
+    {
+      "ea": 65,
+      "stack": 11.33,
+      "efficiency": 81.57
+    },
+    {
+      "ea": 70,
+      "stack": 11.62,
+      "efficiency": 81.28
+    },
+    {
+      "ea": 75,
+      "stack": 11.91,
+      "efficiency": 80.99
+    },
+    {
+      "ea": 80,
+      "stack": 12.2,
+      "efficiency": 80.7
+    },
+    {
+      "ea": 85,
+      "stack": 12.49,
+      "efficiency": 80.41
+    },
+    {
+      "ea": 90,
+      "stack": 12.78,
+      "efficiency": 80.12
+    }
+  ],
+  "sweep_stack": [
+    {
+      "stack_c": 140,
+      "efficiency": 85.44
+    },
+    {
+      "stack_c": 160,
+      "efficiency": 84.06
+    },
+    {
+      "stack_c": 180,
+      "efficiency": 82.67
+    },
+    {
+      "stack_c": 200,
+      "efficiency": 81.28
+    },
+    {
+      "stack_c": 220,
+      "efficiency": 79.88
+    },
+    {
+      "stack_c": 240,
+      "efficiency": 78.47
+    },
+    {
+      "stack_c": 260,
+      "efficiency": 77.06
+    },
+    {
+      "stack_c": 280,
+      "efficiency": 75.63
+    },
+    {
+      "stack_c": 300,
+      "efficiency": 74.2
+    }
+  ],
+  "sweep_moisture": [
+    {
+      "extra_water_kg_per_1000kg": 0,
+      "efficiency": 81.28
+    },
+    {
+      "extra_water_kg_per_1000kg": 25,
+      "efficiency": 81.14
+    },
+    {
+      "extra_water_kg_per_1000kg": 50,
+      "efficiency": 81.0
+    },
+    {
+      "extra_water_kg_per_1000kg": 75,
+      "efficiency": 80.85
+    },
+    {
+      "extra_water_kg_per_1000kg": 100,
+      "efficiency": 80.71
+    },
+    {
+      "extra_water_kg_per_1000kg": 125,
+      "efficiency": 80.56
+    },
+    {
+      "extra_water_kg_per_1000kg": 150,
+      "efficiency": 80.41
+    },
+    {
+      "extra_water_kg_per_1000kg": 175,
+      "efficiency": 80.26
+    },
+    {
+      "extra_water_kg_per_1000kg": 200,
+      "efficiency": 80.11
+    }
+  ],
+  "monte_carlo_hist": [
+    2,
+    14,
+    27,
+    39,
+    96,
+    170,
+    307,
+    428,
+    519,
+    609,
+    629,
+    572,
+    565,
+    436,
+    269,
+    158,
+    109,
+    32,
+    17,
+    2
+  ],
+  "monte_carlo_edges": [
+    76.02,
+    76.51,
+    77.0,
+    77.5,
+    77.99,
+    78.48,
+    78.97,
+    79.46,
+    79.95,
+    80.44,
+    80.93,
+    81.42,
+    81.91,
+    82.41,
+    82.9,
+    83.39,
+    83.88,
+    84.37,
+    84.86,
+    85.35,
+    85.84
+  ]
+}

@@ -12,7 +12,7 @@ from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 from xgboost import XGBRegressor
 
-df = pd.read_csv("data/boiler_dataset.csv")
+df = pd.read_csv("data/boiler_dataset.csv")  # run src/generate_dataset.py first
 
 feature_cols = ["Load (%)", "Excess Air (%)", "Air Flow Rate (kg/hr)", "O2 in Flue Gas (%)"]
 target_col = "Combustion Efficiency (%)"
@@ -54,5 +54,5 @@ for name, model in models.items():
 comparison_df = pd.DataFrame(results)
 print("\nModel comparison on held-out test data:")
 print(comparison_df.to_string(index=False))
-comparison_df.to_csv("model_comparison.csv", index=False)
-print("\nSaved to model_comparison.csv")
+comparison_df.to_csv("reports/model_comparison.csv", index=False)
+print("\nSaved to reports/model_comparison.csv")
