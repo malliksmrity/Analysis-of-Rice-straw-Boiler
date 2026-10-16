@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rice straw boiler | Heat-loss model and efficiency</title>
+<meta name="description" content="A heat-loss model of a rice-straw-fired boiler built from its design workbook. About 81 percent efficient at the design point. Stack temperature and unburnt fuel matter most.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><span>Smrity Mallik &middot; Project page</span><a href="https://github.com/malliksmrity/Analysis-of-Rice-straw-Boiler" target="_blank" rel="noopener">Code on GitHub</a></div>
+
+  <p class="kicker">Energy &middot; biomass boiler &middot; final-year engineering project, with Thermax</p>
+  <h1>A rice-straw boiler turns about 81 percent of the fuel heat into steam. The stack and the unburnt fuel decide most of the rest.</h1>
+  <p class="lead">Built from the boiler&rsquo;s own design workbook: fuel analysis, flue gas species, heat capacities, a 200&nbsp;&deg;C stack and a 70 percent excess-air design point. At that point 11.6 percent of the heat leaves with the flue gas, 5.5 percent is unburnt and 1.6 percent is radiated.</p>
+  <p class="note">The model reproduces the workbook&rsquo;s flue gas mass (6,958 kg per tonne of fuel) and its oxygen share (7.77 %). It is a design calculation, not measured plant data.</p>
+
+  <noscript><p class="callout">The charts and the calculator need JavaScript. The main numbers are in the README.</p></noscript>
+
+  <div class="facts">
+    <div class="fact"><b id="f1">81.3 %</b><span>efficiency at the design point</span></div>
+    <div class="fact"><b id="f2">78.7 to 83.6 %</b><span>90 % range with uncertain inputs</span></div>
+    <div class="fact"><b>6.96 kg</b><span>flue gas per kg of fuel</span></div>
+  </div>
+
+  <h2>What the numbers show</h2>
+
+  <figure>
+    <div class="box" style="height:260px"><canvas id="c1" role="img" aria-label="Stacked bar of where the fuel heat goes at the design point"></canvas></div>
+    <figcaption><b>Chart 1.</b> Where the fuel heat goes at the design point. Useful heat 81.3 percent; flue gas 11.6; unburnt fuel 5.5; radiation 1.6.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="box" style="height:300px"><canvas id="c2" role="img" aria-label="Efficiency and stack loss against excess air"></canvas></div>
+    <figcaption><b>Chart 2.</b> Efficiency against excess air. Less extra air means less heat carried away, so efficiency rises as air falls. In the workbook the unburnt loss is fixed at 5.5 percent, so the model cannot show the penalty of too little air. Trimming excess air from 70 to 50 percent would add about 1.2 points on paper, but real combustion quality sets the lower limit.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="box" style="height:300px"><canvas id="c3" role="img" aria-label="Bar chart of how much each input moves the efficiency"></canvas></div>
+    <figcaption><b>Chart 3.</b> How far efficiency moves when one input changes over a plausible range, others fixed. Stack temperature (180 versus 240 &deg;C) and the unburnt loss move it most, about 4 points each. Fuel moisture matters least in this range.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="box" style="height:260px"><canvas id="c4" role="img" aria-label="Histogram of efficiency from a Monte Carlo run"></canvas></div>
+    <figcaption><b>Chart 4.</b> Efficiency from 5,000 random draws of the uncertain inputs. The middle 90 percent lies between 78.7 and 83.6 percent. The input ranges are my assumptions (see Limits).</figcaption>
+  </figure>
+
+  <h2>Try the model</h2>
+  <div class="callout">
+    <label for="ea">Excess air: <b id="eav">70</b> %</label><br>
+    <input id="ea" type="range" min="20" max="90" value="70" style="width:100%"><br>
+    <label for="ts">Stack temperature: <b id="tsv">200</b> &deg;C</label><br>
+    <input id="ts" type="range" min="140" max="300" value="200" style="width:100%"><br>
+    <label for="un">Unburnt loss: <b id="unv">5.5</b> %</label><br>
+    <input id="un" type="range" min="2" max="9" step="0.5" value="5.5" style="width:100%">
+    <p style="margin:12px 0 0">Flue gas loss <b id="rl"></b> % &middot; Efficiency <b id="re"></b> %</p>
+  </div>
+
+  <h2>What machine learning added</h2>
+  <p>An earlier part of the project trained random forest, XGBoost and gradient boosting on 2,091 generated rows. Their error (MAE 0.14 points) was no better than a straight line (0.12), because the labels came from a straight-line formula. Outside the training range the tree models failed (error 0.84 against 0.12). That is why the heat-loss model is now the core of the project. Machine learning could still help later as a fast stand-in for the slow furnace, bank and economizer iteration.</p>
+
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li>Burn the fuel on paper: carbon, hydrogen, sulphur and moisture give carbon dioxide, water vapour and sulphur dioxide. Nitrogen and extra oxygen come from the air.</li>
+    <li>Heat all of those gases from 30 to 200 &deg;C using the heat-capacity polynomials from the workbook.</li>
+    <li>Efficiency is 100 minus the flue gas loss, the unburnt loss and the radiation loss.</li>
+  </ol>
+
+  <h2>Limits</h2>
+  <ul class="plain">
+    <li>The unburnt (5.5 %) and radiation (1.6 %) losses are fixed values from the workbook. Real boilers lose more unburnt fuel when air is too low, so the best air setting can not be found here. The README shows what an assumed low-air penalty would do and says it is an assumption.</li>
+    <li>The Monte Carlo ranges are my assumptions, not measurements.</li>
+    <li>No measured plant data is used. Comparing with a commissioning or test run is the next step.</li>
+    <li>In the workbook&rsquo;s furnace sheet, heat generation is 8.32 MW while 2,957 kg/h at 2,609 kcal/kg gives 8.97 MW. This should be checked in the original.</li>
+  </ul>
+
+  <footer>
+    Data: the author&rsquo;s boiler design workbook (fuel analysis, heat-capacity coefficients, stack data). Method and design study presented at RDME 2025 and IJARSCT 2025 (references to be added by the author).
+    Code: <a href="https://github.com/malliksmrity/Analysis-of-Rice-straw-Boiler" target="_blank" rel="noopener">github.com/malliksmrity/Analysis-of-Rice-straw-Boiler</a>. Last checked October 2026.
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="heat_loss.js"></script>
+<script>
+(function () {
+  var H = window.HEAT, dp = H.design_point;
+  var css = getComputedStyle(document.documentElement);
+  var accent = css.getPropertyValue('--accent').trim(), grey = css.getPropertyValue('--grey').trim(),
+      text = css.getPropertyValue('--text').trim(), line = css.getPropertyValue('--line').trim(), soft = css.getPropertyValue('--accent-soft').trim();
+  Chart.defaults.color = text; Chart.defaults.borderColor = line;
+  Chart.defaults.font.family = '"Segoe UI", system-ui, sans-serif';
+  var opts = { responsive: true, maintainAspectRatio: false, animation: false };
+
+  document.getElementById('f1').textContent = dp.efficiency.toFixed(1) + ' %';
+  document.getElementById('f2').textContent = H.monte_carlo.p5.toFixed(1) + ' to ' + H.monte_carlo.p95.toFixed(1) + ' %';
+
+  var parts = [['Useful heat', dp.efficiency, accent], ['Flue gas', dp.stack_loss, grey], ['Unburnt fuel', dp.unburnt_loss, '#b35c1e'], ['Radiation', dp.radiation_loss, '#6b4c9a']];
+  new Chart(document.getElementById('c1'), { type: 'bar',
+    data: { labels: ['Fuel heat'], datasets: parts.map(function (p) { return { label: p[0], data: [p[1]], backgroundColor: p[2] }; }) },
+    options: Object.assign({ indexAxis: 'y', scales: { x: { stacked: true, max: 100, title: { display: true, text: 'Share of fuel heat (%)' } }, y: { stacked: true } } }, opts) });
+
+  var S = H.sweep_excess_air;
+  new Chart(document.getElementById('c2'), { type: 'line',
+    data: { labels: S.map(function (r) { return r.ea; }), datasets: [
+      { label: 'Efficiency (%)', data: S.map(function (r) { return r.efficiency; }), borderColor: accent, backgroundColor: accent, borderWidth: 2, pointRadius: 2 },
+      { label: 'Flue gas loss (%)', data: S.map(function (r) { return r.stack; }), borderColor: grey, borderDash: [6, 4], pointRadius: 0, yAxisID: 'y2' }] },
+    options: Object.assign({ scales: { x: { title: { display: true, text: 'Excess air (%)' } }, y: { title: { display: true, text: 'Efficiency (%)' } }, y2: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Flue gas loss (%)' } } } }, opts) });
+
+  var T = H.tornado;
+  new Chart(document.getElementById('c3'), { type: 'bar',
+    data: { labels: T.map(function (r) { return r.input; }), datasets: [{ data: T.map(function (r) { return r.swing; }), backgroundColor: accent }] },
+    options: Object.assign({ indexAxis: 'y', plugins: { legend: { display: false } }, scales: { y: { ticks: { autoSkip: false, font: { size: 11 } } }, x: { beginAtZero: true, title: { display: true, text: 'Change in efficiency (points)' } } } }, opts) });
+
+  var E = H.monte_carlo_edges;
+  new Chart(document.getElementById('c4'), { type: 'bar',
+    data: { labels: H.monte_carlo_hist.map(function (_, i) { return ((E[i] + E[i + 1]) / 2).toFixed(1); }), datasets: [{ data: H.monte_carlo_hist, backgroundColor: soft, borderColor: accent, borderWidth: 1, categoryPercentage: 1, barPercentage: 1 }] },
+    options: Object.assign({ plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Efficiency (%)' } }, y: { title: { display: true, text: 'Draws' } } } }, opts) });
+
+  // same model in JavaScript: integrate Cp polynomials (J/mol K, T in K) from ambient to stack
+  var CP = { CO2: [22.26, 0.05981, -3.501e-05, 7.469e-09], H2O: [32.24, 0.001923, 1.055e-05, -3.595e-09], N2: [28.9, -0.001571, 8.081e-06, -2.873e-09], O2: [25.48, 0.0152, -7.155e-06, 1.312e-09], SO2: [25.78, 0.05795, -3.812e-05, 8.612e-09] };
+  function heat(sp, t0, t1) { var c = CP[sp], F = function (T) { return c[0] * T + c[1] * T * T / 2 + c[2] * Math.pow(T, 3) / 3 + c[3] * Math.pow(T, 4) / 4; }; return F(t1) - F(t0); }
+  function model(ea, tc, un) {
+    var n = { CO2: 26.55, H2O: 24.183333, SO2: 0.053125, N2: 99.925595 * (1 + ea), O2: 26.5625 * ea }, q = 0;
+    for (var sp in n) q += n[sp] * heat(sp, 303.15, tc + 273.15);
+    var stack = 100 * q / (1000 * 2609 * 4.184);
+    return { stack: stack, eff: 100 - stack - un - 1.6 };
+  }
+  function calc() {
+    var ea = +document.getElementById('ea').value, ts = +document.getElementById('ts').value, un = +document.getElementById('un').value, r = model(ea / 100, ts, un);
+    document.getElementById('eav').textContent = ea; document.getElementById('tsv').textContent = ts; document.getElementById('unv').textContent = un;
+    document.getElementById('rl').textContent = r.stack.toFixed(1); document.getElementById('re').textContent = r.eff.toFixed(1);
+  }
+  ['ea', 'ts', 'un'].forEach(function (id) { document.getElementById(id).addEventListener('input', calc); }); calc();
+})();
+</script>
+</body>
+</html>
