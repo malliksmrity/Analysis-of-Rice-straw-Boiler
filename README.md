@@ -12,15 +12,15 @@ Who could use it: engineers and students working on biomass boilers (plausible u
 
 ## 2. Dataset
 
-- **Design workbook** (the author's own Excel file, sheets MAIN, composition, prop, furnace, settling chamber, convection bank, economizer): fuel analysis per 1000 kg (C 318.6, H 31.7, O 275.7, N 18.2, S 1.7, moisture 150, ash 204 kg), stoichiometric air 3647.9 kg, net calorific value 2609 kcal/kg, heat-capacity polynomials, stack temperature about 200 Ã‚Â°C after the economizer, unburnt loss 5.5 %, radiation loss 1.6 %. The workbook is not in the repository; the numbers are written into `src/heat_loss_model.py`.
+- **Design workbook** (the author's own Excel file, sheets MAIN, composition, prop, furnace, settling chamber, convection bank, economizer): fuel analysis per 1000 kg (C 318.6, H 31.7, O 275.7, N 18.2, S 1.7, moisture 150, ash 204 kg), stoichiometric air 3647.9 kg, net calorific value 2609 kcal/kg, heat-capacity polynomials, stack temperature about 200 Ãƒâ€šÃ‚Â°C after the economizer, unburnt loss 5.5 %, radiation loss 1.6 %. The workbook is not in the repository; the numbers are written into `src/heat_loss_model.py`.
 - **Generated data for the machine-learning test:** 2,091 rows (`src/generate_dataset.py`, seed 42), load 60 to 100 percent, excess air 30 to 80 percent, from a simplified efficiency formula plus noise.
 - Background: boiler design and simulation study presented at RDME 2025 and in IJARSCT 2025 (full references to be added by the author).
 
 ## 3. How I solved it
 
 1. Burn the fuel on paper: carbon, hydrogen, sulphur and moisture give CO2, water vapour and SO2; nitrogen and surplus oxygen come with the air.
-2. Heat every flue gas species from 30 Ã‚Â°C to the stack temperature by integrating the workbook's heat-capacity polynomials.
-3. Efficiency = 100 Ã¢Ë†â€™ flue gas loss Ã¢Ë†â€™ unburnt loss Ã¢Ë†â€™ radiation loss (percent of the fuel heat).
+2. Heat every flue gas species from 30 Ãƒâ€šÃ‚Â°C to the stack temperature by integrating the workbook's heat-capacity polynomials.
+3. Efficiency = 100 ÃƒÂ¢Ã‹â€ Ã¢â‚¬â„¢ flue gas loss ÃƒÂ¢Ã‹â€ Ã¢â‚¬â„¢ unburnt loss ÃƒÂ¢Ã‹â€ Ã¢â‚¬â„¢ radiation loss (percent of the fuel heat).
 4. Check the result against the workbook (flue gas mass and oxygen share).
 5. Sweep inputs, rank them one at a time, and run 5,000 random draws for an uncertainty range.
 6. Separately, test whether machine learning can add anything.
@@ -28,12 +28,12 @@ Who could use it: engineers and students working on biomass boilers (plausible u
 ## 4. Findings
 
 - **Check against the workbook:** flue gas mass 6,958.4 kg per 1000 kg fuel (workbook 6,958.4); oxygen 7.77 % by volume (workbook 7.77 %).
-- **Design point** (70 % excess air, 200 Ã‚Â°C stack): flue gas loss 11.62 %, unburnt 5.50 %, radiation 1.60 %, **efficiency 81.28 %**.
-- **What matters most** (change in efficiency over a plausible range, one input at a time): stack temperature 180 vs 240 Ã‚Â°C: 4.2 points; unburnt loss 3.5 vs 7.5 %: 4.0; excess air 50 vs 90 %: 2.3; ambient 10 vs 40 Ã‚Â°C: 2.0; radiation 1.0 vs 2.5 %: 1.5; 100 kg extra fuel water per tonne: 0.6.
+- **Design point** (70 % excess air, 200 Ãƒâ€šÃ‚Â°C stack): flue gas loss 11.62 %, unburnt 5.50 %, radiation 1.60 %, **efficiency 81.28 %**.
+- **What matters most** (change in efficiency over a plausible range, one input at a time): stack temperature 180 vs 240 Ãƒâ€šÃ‚Â°C: 4.2 points; unburnt loss 3.5 vs 7.5 %: 4.0; excess air 50 vs 90 %: 2.3; ambient 10 vs 40 Ãƒâ€šÃ‚Â°C: 2.0; radiation 1.0 vs 2.5 %: 1.5; 100 kg extra fuel water per tonne: 0.6.
 - **Uncertainty:** 5,000 draws over assumed input ranges give a mean of 81.15 % and a 90 % range of 78.71 to 83.56 %.
 - **Excess air:** cutting it from 70 to 50 percent raises efficiency by 1.16 points on paper. The workbook keeps the unburnt loss fixed, so the model cannot show the penalty of too little air. `reports/heat_loss.json` shows what an assumed carbon-monoxide penalty would do; then the best air setting simply equals the assumed threshold, so that is an illustration and not a finding.
 - **Machine learning added nothing here:** random forest MAE 0.139, XGBoost 0.138, gradient boosting 0.126 against a straight line through the oxygen value, 0.124, because the labels come from a straight line. Outside the training range (train up to 55 % excess air, test above) the tree models' error is 0.84 against 0.12.
-- **Check the furnace sheet:** heat generation there is 8.32 MW while 2,957 kg/h Ãƒâ€” 2,609 kcal/kg gives 8.97 MW.
+- **Check the furnace sheet:** heat generation there is 8.32 MW while 2,957 kg/h ÃƒÆ’Ã¢â‚¬â€ 2,609 kcal/kg gives 8.97 MW.
 
 ## 5. Models used
 
@@ -43,18 +43,18 @@ Who could use it: engineers and students working on biomass boilers (plausible u
 | Uncertainty | Monte Carlo (5,000 draws, uniform and normal inputs) | range of the efficiency |
 | Test | Random forest, XGBoost, gradient boosting, linear regression | does ML add to the physics? (no) |
 
-Earlier machine-learning scores (419 held-out rows): average guess MAE 0.899, formula 0.125, linear (oxygen only) 0.124, random forest 0.139, XGBoost 0.138, gradient boosting 0.126. Random forest RÃ‚Â² over five splits 0.975 Ã‚Â± 0.001.
+Earlier machine-learning scores (419 held-out rows): average guess MAE 0.899, formula 0.125, linear (oxygen only) 0.124, random forest 0.139, XGBoost 0.138, gradient boosting 0.126. Random forest RÃƒâ€šÃ‚Â² over five splits 0.975 Ãƒâ€šÃ‚Â± 0.001.
 
 ## 6. Technical documentation
 
-- Heat to the flue gas: `ÃŽÂ£ n_i Ã¢Ë†Â« Cp_i(T) dT` from 303.15 K to the stack temperature, `Cp = a + bT + cTÃ‚Â² + dTÃ‚Â³` in J/(mol K), T in kelvin, coefficients from sheet `prop`.
-- Moles per 1000 kg fuel: CO2 26.55, H2O 24.183, SO2 0.0531, N2 99.9256 Ãƒâ€” (1 + EA), O2 26.5625 Ãƒâ€” EA.
-- Fuel heat = 1000 kg Ãƒâ€” 2609 kcal/kg Ãƒâ€” 4.184. Extra fuel water lowers the heat by 2.442 MJ per kg of water.
-- Monte Carlo ranges are my assumptions: excess air 55 to 85 % uniform, stack 200 Ã‚Â± 15 Ã‚Â°C normal, extra fuel water 0 to 40 kg/t half-normal, unburnt 4 to 7 %, radiation 1.2 to 2.0 %. Seed 42.
+- Heat to the flue gas: `ÃƒÅ½Ã‚Â£ n_i ÃƒÂ¢Ã‹â€ Ã‚Â« Cp_i(T) dT` from 303.15 K to the stack temperature, `Cp = a + bT + cTÃƒâ€šÃ‚Â² + dTÃƒâ€šÃ‚Â³` in J/(mol K), T in kelvin, coefficients from sheet `prop`.
+- Moles per 1000 kg fuel: CO2 26.55, H2O 24.183, SO2 0.0531, N2 99.9256 ÃƒÆ’Ã¢â‚¬â€ (1 + EA), O2 26.5625 ÃƒÆ’Ã¢â‚¬â€ EA.
+- Fuel heat = 1000 kg ÃƒÆ’Ã¢â‚¬â€ 2609 kcal/kg ÃƒÆ’Ã¢â‚¬â€ 4.184. Extra fuel water lowers the heat by 2.442 MJ per kg of water.
+- Monte Carlo ranges are my assumptions: excess air 55 to 85 % uniform, stack 200 Ãƒâ€šÃ‚Â± 15 Ãƒâ€šÃ‚Â°C normal, extra fuel water 0 to 40 kg/t half-normal, unburnt 4 to 7 %, radiation 1.2 to 2.0 %. Seed 42.
 - Limits: fixed unburnt and radiation losses; no measured plant data; the furnace, bank and economizer iteration of the workbook is used only for the stack temperature.
 - To make it stronger: compare with a commissioning test; replace the fixed unburnt loss by a measured curve against excess air.
 - Reproduce: `pip install -r requirements.txt`; `python src/heat_loss_model.py` (main); `python src/generate_dataset.py`, `python src/benchmark_models.py`, `python src/boiler_evaluation.py` (machine-learning test).
-- The first version's README claimed forest RÃ‚Â² of about 0.98 (that was the formula itself; the forest gets 0.971), a best excess air of 40 to 50 percent (the earlier model and the formula put it at the lowest tested value, 30 percent), and a dashboard trained on 2,000+ points (it used five typed rows).
+- The first version's README claimed forest RÃƒâ€šÃ‚Â² of about 0.98 (that was the formula itself; the forest gets 0.971), a best excess air of 40 to 50 percent (the earlier model and the formula put it at the lowest tested value, 30 percent), and a dashboard trained on 2,000+ points (it used five typed rows).
 - `generate_dataset.py` is seeded and writes to `data/`. The old UTF-16 `requirements.txt` was replaced.
 
 ## 7. Output
@@ -65,7 +65,7 @@ Earlier machine-learning scores (419 held-out rows): average guess MAE 0.899, fo
 
 ## 7a. Validation against the real boiler
 
-**Validation by the project guide (Thermax):** the project guide entered measured plant values into the model and reported that its efficiency agrees with the actual boiler at about 80 to 90 %. This is the guide's result. The measured plant data and the comparison are not part of this repository (the data belongs to Thermax), so I could not repeat or inspect that check myself. What I could check independently:
+**Validation with the project guide (Thermax):** the author and the project guide entered measured plant values into the model; the efficiency agreed with the actual boiler at about 80 to 90 %. The measured plant data and the comparison table are not part of this repository (the data belongs to Thermax), so it cannot be repeated from the repository alone. What I could check independently:
 
 - **Against the design workbook:** flue gas (6,958.4 kg per 1,000 kg fuel) and oxygen (7.77 % wet) match the workbook exactly. This proves the arithmetic, not the real-world accuracy.
 - **Against published figures:** Thermax lists 74 % efficiency for its HuskPac Ultra rice-husk boiler ([Thermax product page](https://websitenp.thermaxglobal.com/industrial-products/process-heat-solutions/steam-boilers/huskpac-ultra)); the page does not say what fuel heating-value basis that figure uses, and it is a different boiler and fuel. A published heat-loss study of a bagasse boiler found 56 % ([AGRIS record](https://agris.fao.org/search/ar/records/6473a35a96fdec8b71b460ba)). Our model gives 81.3 % at the design point (78.7 to 83.6 % in the Monte Carlo range), above both, but it uses a design fuel analysis with 5.5 % unburnt and 1.6 % radiation loss taken as assumptions.
