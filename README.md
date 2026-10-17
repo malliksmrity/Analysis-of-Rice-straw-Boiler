@@ -1,24 +1,24 @@
 # Rice straw boiler: efficiency from a heat-loss model
 
-**In one sentence:** this project works out how much of the fuel heat a rice-straw-fired boiler turns into steam, from its own design data, and shows which losses matter most and how sure the answer is.
+This project works out how much of the fuel heat a rice-straw-fired boiler turns into steam, from its own design data, and shows which losses matter most and how sure the answer is.
 
 Final-year B.Eng. project, done together with Thermax. Live page with charts and a calculator: `docs/index.html` (GitHub Pages, folder `/docs`). Live app for Hugging Face Spaces: `space/`.
 
 ## 1. Problem
 
-A biomass boiler burns agricultural waste (rice straw) to make steam. Straw is wet, ash-rich and variable, so efficiency is not obvious. Operators and designers need to know: **where does the fuel heat go at the design point, which input would change the efficiency most, and how uncertain is the number?** A second question from the first version of this project: does machine learning add anything to the physics?
+A biomass boiler burns agricultural waste (rice straw) to make steam. Straw is wet, ash-rich, and variable, so efficiency is not obvious. Operators and designers need to know: **where does the fuel heat go at the design point, which input would change the efficiency most, and how uncertain is the number?** A second question from the first version of this project: does machine learning add anything to the physics?
 
 Who could use it: engineers and students working on biomass boilers (plausible uses, not tested). It is a design calculation, not a plant test.
 
 ## 2. Dataset
 
-- **Design workbook** (the author's own Excel file, sheets MAIN, composition, prop, furnace, settling chamber, convection bank, economizer): fuel analysis per 1000 kg (C 318.6, H 31.7, O 275.7, N 18.2, S 1.7, moisture 150, ash 204 kg), stoichiometric air 3647.9 kg, net calorific value 2609 kcal/kg, heat-capacity polynomials, stack temperature about 200 ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°C after the economizer, unburnt loss 5.5 %, radiation loss 1.6 %. The workbook is not in the repository; the numbers are written into `src/heat_loss_model.py`.
+- **Design workbook** (the author's own Excel file, sheets MAIN, composition, prop, furnace, settling chamber, convection bank, economizer): fuel analysis per 1000 kg (C 318.6, H 31.7, O 275.7, N 18.2, S 1.7, moisture 150, ash 204 kg), stoichiometric air 3647.9 kg, net calorific value 2609 kcal/kg, heat-capacity polynomials, stack temperature about 200  after the economizer, unburnt loss 5.5 %, radiation loss 1.6 %. The workbook is not in the repository; the numbers are written into `src/heat_loss_model.py`.
 - **Generated data for the machine-learning test:** 2,091 rows (`src/generate_dataset.py`, seed 42), load 60 to 100 percent, excess air 30 to 80 percent, from a simplified efficiency formula plus noise.
 - Background: boiler design and simulation study presented at RDME 2025 and in IJARSCT 2025 (full references to be added by the author).
 
 ## 3. How I solved it
 
-1. Burn the fuel on paper: carbon, hydrogen, sulphur and moisture give CO2, water vapour and SO2; nitrogen and surplus oxygen come with the air.
+1. Burn the fuel on paper: carbon, hydrogen, sulphur, and moisture give CO2, water vapour and SO2; nitrogen and surplus oxygen come with the air.
 2. Heat every flue gas species from 30 ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°C to the stack temperature by integrating the workbook's heat-capacity polynomials.
 3. Efficiency = 100 ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ flue gas loss ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ unburnt loss ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ radiation loss (percent of the fuel heat).
 4. Check the result against the workbook (flue gas mass and oxygen share).
