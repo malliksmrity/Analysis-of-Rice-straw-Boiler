@@ -1,12 +1,12 @@
 # Rice straw boiler: efficiency from a heat-loss model
 
-**In one sentence:** this project works out how much of the fuel heat a rice-straw-fired boiler turns into steam, from its own design data, and shows which losses matter most and how sure the answer is.
+This project works out how much of the fuel heat a rice-straw-fired boiler turns into steam, from its own design data, and shows which losses matter most and how sure the answer is.
 
 Final-year B.Eng. project, done together with Thermax. Live page with charts and a calculator: `docs/index.html` (GitHub Pages, folder `/docs`). Live app for Hugging Face Spaces: `space/`.
 
 ## 1. Problem
 
-A biomass boiler burns agricultural waste (rice straw) to make steam. Straw is wet, ash-rich and variable, so efficiency is not obvious. Operators and designers need to know: **where does the fuel heat go at the design point, which input would change the efficiency most, and how uncertain is the number?** A second question from the first version of this project: does machine learning add anything to the physics?
+A biomass boiler burns agricultural waste (rice straw) to make steam. Straw is wet, ash-rich, and variable, so efficiency is not obvious. Operators and designers need to know: **where does the fuel heat go at the design point, which input would change the efficiency most, and how uncertain is the number?** A second question from the first version of this project: does machine learning add anything to the physics?
 
 Who could use it: engineers and students working on biomass boilers (plausible uses, not tested). It is a design calculation, not a plant test.
 
